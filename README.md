@@ -6,8 +6,8 @@
 
 |Contract       | Addresss                                                                                                            | Notes   |
 |:-------------:|:-------------------------------------------------------------------------------------------------------------------:|-------|
-|OHM            |[TODO:](https://etherscan.io/address/TODOFILL)| Main Token Contract|
-|sOHM           |[TODO](https://etherscan.io/address/TODOFILL)|
+|gAKITA            |[TODO:](https://etherscan.io/address/TODOFILL)| Main Token Contract|
+|sgAKITA           |[TODO](https://etherscan.io/address/TODOFILL)|
 |Treasury       |[TODO](https://etherscan.io/address/TODOFILL)| 
 |OlympusStaking |[TODO](https://etherscan.io/address/TODO)|
 |StakingHelper  |[TODO](https://etherscan.io/address/TODO)|
@@ -25,10 +25,10 @@ All LP bonds use the Bonding Calculator contract which is used to compute RFV.
 |Contract       | Addresss                                                                                                            | Notes   |
 |:-------------:|:-------------------------------------------------------------------------------------------------------------------:|-------|
 |Bond Calculator|[TODO](https://etherscan.io/address/TODO)| 
-|DAI bond|[TODO](https://etherscan.io/address/TODO)| 
-|DAI/OHM SLP Bond|[TODO](https://etherscan.io/address/TODO)| 
-|FRAX Bond|[TODO](https://etherscan.io/address/TODO)|
-|FRAX/OHM SLP Bond|[TODO](https://etherscan.io/address/TODO)|
+| bond|[TODO](https://etherscan.io/address/TODO)| 
+| Bond|[TODO](https://etherscan.io/address/TODO)| 
+| Bond|[TODO](https://etherscan.io/address/TODO)|
+| Bond|[TODO](https://etherscan.io/address/TODO)|
 
 
 ### Testnet Addresses

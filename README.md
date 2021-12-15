@@ -11,9 +11,6 @@
 |Treasury       |[TODO](https://etherscan.io/address/TODOFILL)| 
 |OlympusStaking |[TODO](https://etherscan.io/address/TODO)|
 |StakingHelper  |[TODO](https://etherscan.io/address/TODO)|
-|Aave Allocator |[TODO](https://etherscan.io/address/TODO)|
-|Convex Allocator |[TODO](https://etherscan.io/address/TODO)|
-|Onsen Allocator |[TODO](https://etherscan.io/address/TODO)|
 |DAO            |[TOODO](https://etherscan.io/address/TODO)|
 |Staking Warm Up|[TODO](https://etherscan.io/address/TODO)|
 

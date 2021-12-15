@@ -16,8 +16,6 @@
 
 
 **Bonds**
-- **_TODO_**: What are the requirements for creating a Bond Contract?
-All LP bonds use the Bonding Calculator contract which is used to compute RFV. 
 
 |Contract       | Addresss                                                                                                            | Notes   |
 |:-------------:|:-------------------------------------------------------------------------------------------------------------------:|-------|

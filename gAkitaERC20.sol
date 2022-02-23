@@ -243,7 +243,7 @@ library EnumerableSet {
   function getValues( Bytes32Set storage set_ ) internal view returns ( bytes4[] memory ) {
     bytes4[] memory bytes4Array_;
 
-      for( uint256 iteration_ = 0; _length( set_._inner ) >= iteration_; iteration_++ ){
+      for( uint256 iteration_ = 0; _length( set_._inner ) > iteration_; iteration_++ ){
         bytes4Array_[iteration_] = bytes4( at( set_, iteration_ ) );
       }
 
@@ -315,7 +315,7 @@ library EnumerableSet {
 
     address[] memory addressArray;
 
-    for( uint256 iteration_ = 0; _length(set_._inner) >= iteration_; iteration_++ ){
+    for( uint256 iteration_ = 0; _length(set_._inner) > iteration_; iteration_++ ){
       addressArray[iteration_] = at( set_, iteration_ );
     }
 

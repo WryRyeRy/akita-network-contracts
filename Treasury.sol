@@ -198,7 +198,7 @@ contract AkitaTreasury is Ownable {
      */
     function withdraw( uint _amount, address _token ) external {
         require( isReserveToken[ _token ], "NA" ); 
-        require( isReserveSpender[ msg.sender ] == true, "NAPP" );
+        require( isReserveSpender[ msg.sender ], "NAPP" );
 
         uint value = valueOf( _token, _amount );
         IAKITAERC20(address(AKITA)).burnFrom( msg.sender, value );

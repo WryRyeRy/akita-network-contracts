@@ -84,6 +84,8 @@ contract sgAkita is ERC20, Ownable {
         uint256 rebaseAmount;
         uint256 circulatingSupply_ = circulatingSupply();
 
+        require(circulatingSupply_ > 0, "cant rebase when circulatingSupply is 0");
+
         if ( profit_ == 0 ) {
             emit LogSupply( epoch_, block.timestamp, total_token_supply );
             emit LogRebase( epoch_, 0, index() );

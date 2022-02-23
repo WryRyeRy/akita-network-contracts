@@ -41,4 +41,4 @@ Network: `FUJI` (4)
 
 Set compiler to v0.8.10
 Init a package.json
-npm install --save-dev @openzeppelin/contracts
+npm install --save-dev @openzeppelin/contracts @openzeppelin/contracts-upgradeable

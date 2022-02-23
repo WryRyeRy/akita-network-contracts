@@ -415,7 +415,6 @@ contract AkitaTreasury is Ownable {
 
         } else if ( _managing == MANAGING.RESERVEMANAGER ) { // 3
             if ( requirements( ReserveManagerQueue, isReserveManager, _address ) ) {
-                reserveManagers.push( _address );
                 ReserveManagerQueue[ _address ] = 0;
                 if( !listContains( reserveManagers, _address ) ) {
                     reserveManagers.push( _address );
@@ -426,7 +425,6 @@ contract AkitaTreasury is Ownable {
 
         } else if ( _managing == MANAGING.LIQUIDITYDEPOSITOR ) { // 4
             if ( requirements( LiquidityDepositorQueue, isLiquidityDepositor, _address ) ) {
-                liquidityDepositors.push( _address );
                 LiquidityDepositorQueue[ _address ] = 0;
                 if( !listContains( liquidityDepositors, _address ) ) {
                     liquidityDepositors.push( _address );

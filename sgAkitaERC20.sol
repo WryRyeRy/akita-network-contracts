@@ -102,7 +102,7 @@ contract sgAkita is ERC20, Ownable {
 
         _gonsPerFragment = Fixidity.fromFixed( Fixidity.divide( Fixidity.newFixed(TOTAL_GONS) , Fixidity.newFixed(total_token_supply) ));
 
-        _storeRebase( circulatingSupply_, rebaseAmount, epoch_ );
+        _storeRebase( circulatingSupply_, profit_, epoch_, rebaseAmount );
 
         return total_token_supply;
     }
@@ -114,8 +114,8 @@ contract sgAkita is ERC20, Ownable {
         @param epoch_ uint
         @return bool
      */
-    function _storeRebase( uint previousCirculating_, uint rebaseAmount_, uint epoch_ ) internal returns ( bool ) {
-        uint rebasePercent = Fixidity.fromFixed( Fixidity.divide( Fixidity.mul( Fixidity.newFixed(rebaseAmount_) , Fixidity.newFixed(1e18) ) , Fixidity.newFixed(previousCirculating_)) );
+    function _storeRebase( uint previousCirculating_, uint profit_, uint epoch_, uint rebaseAmount_ ) internal returns ( bool ) {
+        uint rebasePercent = Fixidity.fromFixed( Fixidity.divide( Fixidity.mul( Fixidity.newFixed(profit_) , Fixidity.newFixed(1e18) ) , Fixidity.newFixed(previousCirculating_)) );
 
         rebases.push( Rebase ( {
             epoch: epoch_,

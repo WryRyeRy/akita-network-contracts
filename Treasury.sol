@@ -364,7 +364,7 @@ contract AkitaTreasury is Ownable {
         } else if ( _managing == MANAGING.DEBTOR ) { // 7
             debtorQueue[ _address ] =  block.number.add( blocksNeededForQueue );
          } else if ( _managing == MANAGING.REWARDMANAGER ) { // 8
-            rewardManagerQueue[ _address ] =  rewardManagerQueue[ _address ] = block.number.add( blocksNeededForQueue );
+            rewardManagerQueue[ _address ] =  block.number.add( blocksNeededForQueue );
         } else if ( _managing == MANAGING.SGAKITA ) { // 9
             sgAKITAQueue = block.number.add( blocksNeededForQueue );
         } else return false;

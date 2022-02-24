@@ -37,8 +37,8 @@ Network: `FUJI` (4)
 - Staking Warmup ``
 - Staking Helper ``
 
-### Building
+### Running tests
 
 Set compiler to v0.8.10
-Init a package.json
-npm install --save-dev @openzeppelin/contracts @openzeppelin/contracts-upgradeable
+npm install
+npm run test

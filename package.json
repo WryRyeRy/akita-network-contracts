@@ -1,0 +1,28 @@
+{
+  "name": "akita-network-contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "hardhat test --network hardhat"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WryRyeRy/akita-network-contracts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/WryRyeRy/akita-network-contracts/issues"
+  },
+  "homepage": "https://github.com/WryRyeRy/akita-network-contracts#readme",
+  "devDependencies": {
+    "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/contracts-upgradeable": "^4.5.1",
+    "chai": "^4.3.6",
+    "ethereum-waffle": "^3.4.0",
+    "hardhat": "^2.8.4",
+    "@nomiclabs/hardhat-waffle": "^2.0.0"
+  }
+}

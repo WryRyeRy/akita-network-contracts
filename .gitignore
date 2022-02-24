@@ -3,3 +3,5 @@ package-lock.json
 package.json
 /bin/*
 /node_modules/*
+/artifacts/*
+cache/*

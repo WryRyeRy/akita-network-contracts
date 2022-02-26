@@ -109,7 +109,7 @@ contract Distributor is Policy {
      */
     function distribute() external returns ( bool ) {
         if ( nextEpochBlock <= block.number ) {
-            nextEpochBlock = Fixidity.fromFixed( Fixidity.add( Fixidity.newFixed(nextEpochBlock) , Fixidity.newFixed(epochLength))); // set next epoch block
+            nextEpochBlock = nextEpochBlock + epochLength; // set next epoch block
             
             // distribute rewards to each recipient
             for ( uint i = 0; i < info.length; i++ ) {

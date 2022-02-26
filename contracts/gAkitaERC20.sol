@@ -505,101 +505,7 @@ interface IERC20 {
   event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-library SafeMath {
-
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-
-        return c;
-    }
-
-    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        return mod(a, b, "SafeMath: modulo by zero");
-    }
-
-    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b != 0, errorMessage);
-        return a % b;
-    }
-
-    function sqrrt(uint256 a) internal pure returns (uint c) {
-        if (a > 3) {
-            c = a;
-            uint b = add( div( a, 2), 1 );
-            while (b < c) {
-                c = b;
-                b = div( add( div( a, b ), b), 2 );
-            }
-        } else if (a != 0) {
-            c = 1;
-        }
-    }
-
-    function percentageAmount( uint256 total_, uint8 percentage_ ) internal pure returns ( uint256 percentAmount_ ) {
-        return div( mul( total_, percentage_ ), 1000 );
-    }
-
-    function substractPercentage( uint256 total_, uint8 percentageToSub_ ) internal pure returns ( uint256 result_ ) {
-        return sub( total_, div( mul( total_, percentageToSub_ ), 1000 ) );
-    }
-
-    function percentageOfTotal( uint256 part_, uint256 total_ ) internal pure returns ( uint256 percent_ ) {
-        return div( mul(part_, 100) , total_ );
-    }
-
-    function average(uint256 a, uint256 b) internal pure returns (uint256) {
-        // (a + b) / 2 can overflow, so we distribute
-        return (a / 2) + (b / 2) + ((a % 2 + b % 2) / 2);
-    }
-
-    function quadraticPricing( uint256 payment_, uint256 multiplier_ ) internal pure returns (uint256) {
-        return sqrrt( mul( multiplier_, payment_ ) );
-    }
-
-  function bondingCurve( uint256 supply_, uint256 multiplier_ ) internal pure returns (uint256) {
-      return mul( multiplier_, supply_ );
-  }
-}
-
 abstract contract ERC20 is IERC20 {
-
-  using SafeMath for uint256;
 
   // TODO comment actual hash value.
   bytes32 constant private ERC20TOKEN_ERC1820_INTERFACE_ID = keccak256( "ERC20Token" );
@@ -664,17 +570,24 @@ abstract contract ERC20 is IERC20 {
 
     function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(sender, msg.sender, _allowances[sender][msg.sender].sub(amount, "ERC20: transfer amount exceeds allowance"));
+
+        uint256 userAllowance = _allowances[sender][msg.sender];
+        require(amount <= userAllowance, "ERC20: transfer amount exceeds allowance");        
+
+        _approve(sender, msg.sender, userAllowance - amount);
         return true;
     }
 
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
+        _approve(msg.sender, spender, _allowances[msg.sender][spender] + addedValue);
         return true;
     }
 
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        _approve(msg.sender, spender, _allowances[msg.sender][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
+        uint256 decreaseAmount = _allowances[msg.sender][spender];
+        require (subtractedValue <= decreaseAmount, "ERC20: decreased allowance below zero");
+
+        _approve(msg.sender, spender, decreaseAmount - subtractedValue);
         return true;
     }
 
@@ -683,17 +596,19 @@ abstract contract ERC20 is IERC20 {
       require(recipient != address(0), "ERC20: transfer to the zero address");
 
       _beforeTokenTransfer(sender, recipient, amount);
+      uint256 senderBalance = _balances[sender];
+      require(amount <= senderBalance, "ERC20: transfer amount exceeds balance");
 
-      _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
-      _balances[recipient] = _balances[recipient].add(amount);
+      _balances[sender] = senderBalance - amount;
+      _balances[recipient] = _balances[recipient] + amount;
       emit Transfer(sender, recipient, amount);
     }
 
     function _mint(address account_, uint256 amount_) internal virtual {
         require(account_ != address(0), "ERC20: mint to the zero address");
         _beforeTokenTransfer(address( this ), account_, amount_);
-        _totalSupply = _totalSupply.add(amount_);
-        _balances[account_] = _balances[account_].add(amount_);
+        _totalSupply = _totalSupply + amount_;
+        _balances[account_] = _balances[account_] + amount_;
         emit Transfer(address( this ), account_, amount_);
     }
 
@@ -702,8 +617,11 @@ abstract contract ERC20 is IERC20 {
 
         _beforeTokenTransfer(account, address(0), amount);
 
-        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
-        _totalSupply = _totalSupply.sub(amount);
+        uint256 accountBalance = _balances[account];
+        require(amount <= accountBalance, "ERC20: burn amount exceeds balance" );
+
+        _balances[account] = accountBalance - amount;
+        _totalSupply = _totalSupply - amount;
         emit Transfer(account, address(0), amount);
     }
 
@@ -719,7 +637,6 @@ abstract contract ERC20 is IERC20 {
 }
 
 library Counters {
-    using SafeMath for uint256;
 
     struct Counter {
         uint256 _value; // default: 0
@@ -734,7 +651,7 @@ library Counters {
     }
 
     function decrement(Counter storage counter) internal {
-        counter._value = counter._value.sub(1);
+        counter._value -= 1;
     }
 }
 
@@ -871,8 +788,6 @@ contract VaultOwned is Ownable {
 
 contract gAkitaERC20Token is ERC20Permit, VaultOwned {
 
-    using SafeMath for uint256;
-
     constructor() ERC20("gAkita", "gAKITA", 9) {
     }
 
@@ -889,11 +804,10 @@ contract gAkitaERC20Token is ERC20Permit, VaultOwned {
     }
 
     function _burnFrom(address account_, uint256 amount_) public virtual {
-        uint256 decreasedAllowance_ =
-            allowance(account_, msg.sender).sub(
-                amount_,
-                "ERC20: burn amount exceeds allowance"
-            );
+        uint256 accountAllowance = allowance(account_, msg.sender);
+        require(amount_ <= accountAllowance, "ERC20: burn amount exceeds allowance");
+
+        uint256 decreasedAllowance_ = accountAllowance - amount_;
 
         _approve(account_, msg.sender, decreasedAllowance_);
         _burn(account_, amount_);

@@ -526,7 +526,7 @@ abstract contract ERC20 is IERC20 {
   string internal _symbol;
     
   // Present in ERC777
-  uint8 internal _decimals;
+  uint8 internal immutable _decimals;
 
   constructor (string memory name_, string memory symbol_, uint8 decimals_) {
     _name = name_;
@@ -678,7 +678,7 @@ abstract contract ERC20Permit is ERC20, IERC2612Permit {
     // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     bytes32 public constant PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
 
-    bytes32 public DOMAIN_SEPARATOR;
+    bytes32 public immutable DOMAIN_SEPARATOR;
 
     constructor() {
         uint256 chainID;

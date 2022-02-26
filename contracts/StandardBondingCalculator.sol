@@ -82,10 +82,7 @@ contract AkitaBondingCalculator is IBondingCalculator {
     function getKValue( address _pair ) public view returns( uint k_ ) {
         uint token0 = IERC20Metadata(IUniswapV2Pair( _pair ).token0()).decimals();
         uint token1 = IERC20Metadata(IUniswapV2Pair( _pair ).token1()).decimals();
-        uint decimals = Fixidity.fromFixed( 
-            Fixidity.add( 
-            Fixidity.subtract( Fixidity.newFixed(token1) , Fixidity.newFixed(IERC20Metadata( _pair ).decimals()) ), Fixidity.newFixed(token0) )
-             );
+        uint decimals = (token1 - IERC20Metadata( _pair ).decimals()) + token0; 
 
         (uint reserve0, uint reserve1, ) = IUniswapV2Pair( _pair ).getReserves();
         k_ = Fixidity.fromFixed( 
@@ -96,7 +93,7 @@ contract AkitaBondingCalculator is IBondingCalculator {
     }
     // calculates the risk free value of OHM-stable LP tokens
     function getTotalValue( address _pair ) public view returns ( uint _value ) {
-        _value = Fixidity.fromFixed(Fixidity.mul(Fixidity.newFixed(Babylonian.sqrt(getKValue(_pair))),Fixidity.newFixed(2)));
+        _value = Babylonian.sqrt(getKValue(_pair)) * 2; 
     }
 
     function valuation( address _pair, uint amount_ ) external view override returns ( uint _value ) {

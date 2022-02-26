@@ -138,12 +138,12 @@ contract Distributor is Policy {
         Adjust memory adjustment = adjustments[ _index ];
         if ( adjustment.rate != 0 ) {
             if ( adjustment.add ) { // if rate should increase
-                info[ _index ].rate = Fixidity.fromFixed( Fixidity.add( Fixidity.newFixed(info[ _index ].rate) , Fixidity.newFixed(adjustment.rate))); // raise rate
+                info[ _index ].rate = info[ _index ].rate + adjustment.rate; // raise rate
                 if ( info[ _index ].rate >= adjustment.target ) { // if target met
                     adjustments[ _index ].rate = 0; // turn off adjustment
                 }
             } else { // if rate should decrease
-                info[ _index ].rate = Fixidity.fromFixed( Fixidity.subtract( Fixidity.newFixed(info[ _index ].rate) , Fixidity.newFixed(adjustment.rate))); // lower rate
+                info[ _index ].rate = info[ _index ].rate - adjustment.rate; // lower rate
                 if ( info[ _index ].rate <= adjustment.target ) { // if target met
                     adjustments[ _index ].rate = 0; // turn off adjustment
                 }

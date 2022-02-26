@@ -3,7 +3,6 @@ pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./Fixidity.sol";
 
 interface IOwnable {
   function manager() external view returns (address);
@@ -144,9 +143,9 @@ contract AkitaStaking is Ownable {
         require( !info.lock, "Deposits for account are locked" );
 
         warmupInfo[ _recipient ] = Claim ({
-            deposit: Fixidity.fromFixed(Fixidity.add (Fixidity.newFixed(info.deposit) , Fixidity.newFixed(_amount) )),
-            gons: Fixidity.fromFixed(Fixidity.add (Fixidity.newFixed(info.gons) , Fixidity.newFixed(IsgAKITA( address(sgAKITA) ).gonsForBalance( _amount )) )),
-            expiry: Fixidity.fromFixed(Fixidity.add (Fixidity.newFixed(epoch.number) , Fixidity.newFixed(warmupPeriod) )),
+            deposit: info.deposit + _amount,
+            gons: info.gons + IsgAKITA( address(sgAKITA) ).gonsForBalance( _amount ), 
+            expiry: epoch.number + warmupPeriod,
             lock: false
         });
         
@@ -213,7 +212,7 @@ contract AkitaStaking is Ownable {
 
             IsgAKITA( address(sgAKITA) ).rebase( epoch.distribute, epoch.number );
 
-            epoch.endBlock = Fixidity.fromFixed( Fixidity.add( Fixidity.newFixed(epoch.endBlock) , Fixidity.newFixed(epoch.length)));
+            epoch.endBlock = epoch.endBlock + epoch.length;
             epoch.number++;
             
             if ( distributor != address(0) ) {
@@ -226,7 +225,7 @@ contract AkitaStaking is Ownable {
             if( balance <= staked ) {
                 epoch.distribute = 0;
             } else {
-                epoch.distribute = Fixidity.fromFixed( Fixidity.subtract( Fixidity.newFixed(balance) , Fixidity.newFixed(staked) ));
+                epoch.distribute = balance - staked;
             }
         }
     }
@@ -236,7 +235,7 @@ contract AkitaStaking is Ownable {
         @return uint
      */
     function contractBalance() public view returns ( uint ) {
-        return Fixidity.fromFixed( Fixidity.add( Fixidity.newFixed(AKITA.balanceOf( address(this) )) , Fixidity.newFixed(totalBonus) ));
+        return AKITA.balanceOf( address(this) ) + totalBonus; 
     }
 
     /**
@@ -245,7 +244,7 @@ contract AkitaStaking is Ownable {
      */
     function giveLockBonus( uint _amount ) external {
         require( msg.sender == locker );
-        totalBonus = Fixidity.fromFixed( Fixidity.add( Fixidity.newFixed(totalBonus) , Fixidity.newFixed( _amount ) ));
+        totalBonus = totalBonus - _amount;
 
         sgAKITA.safeTransfer( locker, _amount );
     }
@@ -256,7 +255,7 @@ contract AkitaStaking is Ownable {
      */
     function returnLockBonus( uint _amount ) external {
         require( msg.sender == locker );
-        totalBonus = Fixidity.fromFixed( Fixidity.subtract( Fixidity.newFixed(totalBonus) , Fixidity.newFixed( _amount ) ));
+        totalBonus = totalBonus - _amount;
         sgAKITA.safeTransferFrom( locker, address(this), _amount );
     }
 

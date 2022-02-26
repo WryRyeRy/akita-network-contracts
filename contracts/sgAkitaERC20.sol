@@ -96,7 +96,7 @@ contract sgAkita is ERC20, Ownable {
             rebaseAmount = profit_;
         }
 
-        total_token_supply = Fixidity.fromFixed(Fixidity.add( Fixidity.newFixed(total_token_supply) , Fixidity.newFixed(rebaseAmount) ));
+        total_token_supply = total_token_supply + rebaseAmount;
 
         if ( total_token_supply > MAX_SUPPLY ) {
             total_token_supply = MAX_SUPPLY;
@@ -140,7 +140,7 @@ contract sgAkita is ERC20, Ownable {
     }
 
     function gonsForBalance( uint amount ) public view returns ( uint ) {
-        return Fixidity.fromFixed( Fixidity.mul(Fixidity.newFixed(amount), Fixidity.newFixed(_gonsPerFragment) ));
+        return amount * _gonsPerFragment;
     }
 
     function balanceForGons( uint gons ) public view returns ( uint ) {
@@ -149,7 +149,7 @@ contract sgAkita is ERC20, Ownable {
 
     // Staking contract holds excess sgAKITA
     function circulatingSupply() public view returns ( uint ) {
-        return Fixidity.fromFixed( Fixidity.subtract( Fixidity.newFixed(total_token_supply) , Fixidity.newFixed(balanceOf( stakingContract )) ));
+        return total_token_supply - balanceOf( stakingContract );
     }
 
     function index() public view returns ( uint ) {
@@ -157,9 +157,9 @@ contract sgAkita is ERC20, Ownable {
     }
 
     function transfer( address to, uint256 value ) public override returns (bool) {
-        uint256 gonValue = Fixidity.fromFixed( Fixidity.mul( Fixidity.newFixed(value) , Fixidity.newFixed(_gonsPerFragment)) );
-        _gonBalances[ msg.sender ] = Fixidity.fromFixed( Fixidity.subtract( Fixidity.newFixed(_gonBalances[ msg.sender ]) , Fixidity.newFixed(gonValue) ));
-        _gonBalances[ to ] = Fixidity.fromFixed( Fixidity.add( Fixidity.newFixed(_gonBalances[ to ]) , Fixidity.newFixed(gonValue) ));
+        uint256 gonValue = value * _gonsPerFragment;
+        _gonBalances[ msg.sender ] = _gonBalances[ msg.sender ] - gonValue;
+        _gonBalances[ to ] = _gonBalances[ to ] + gonValue;
         emit Transfer( msg.sender, to, value );
         return true;
     }
@@ -169,12 +169,12 @@ contract sgAkita is ERC20, Ownable {
     }
 
     function transferFrom( address from, address to, uint256 value ) public override returns ( bool ) {
-       _allowedValue[ from ][ msg.sender ] = Fixidity.fromFixed( Fixidity.subtract( Fixidity.newFixed(_allowedValue[ from ][ msg.sender ]) , Fixidity.newFixed(value) ));
+       _allowedValue[ from ][ msg.sender ] = _allowedValue[ from ][ msg.sender ] - value;
        emit Approval( from, msg.sender,  _allowedValue[ from ][ msg.sender ] );
 
         uint256 gonValue = gonsForBalance( value );
-        _gonBalances[ from ] = Fixidity.fromFixed( Fixidity.subtract( Fixidity.newFixed(_gonBalances[from]) , Fixidity.newFixed(gonValue) ));
-        _gonBalances[ to ] = Fixidity.fromFixed( Fixidity.add( Fixidity.newFixed(_gonBalances[ to ]) , Fixidity.newFixed(gonValue) ));
+        _gonBalances[ from ] = _gonBalances[from] - gonValue;
+        _gonBalances[ to ] = _gonBalances[ to ] + gonValue;
         emit Transfer( from, to, value );
 
         return true;
@@ -193,7 +193,7 @@ contract sgAkita is ERC20, Ownable {
     }
 
     function increaseAllowance( address spender, uint256 addedValue ) public override returns (bool) {
-        _allowedValue[ msg.sender ][ spender ] = Fixidity.fromFixed( Fixidity.add( Fixidity.newFixed(_allowedValue[ msg.sender ][ spender ]) , Fixidity.newFixed(addedValue) ));
+        _allowedValue[ msg.sender ][ spender ] = _allowedValue[ msg.sender ][ spender ] + addedValue;
         emit Approval( msg.sender, spender, _allowedValue[ msg.sender ][ spender ] );
         return true;
     }
@@ -203,7 +203,7 @@ contract sgAkita is ERC20, Ownable {
         if (subtractedValue >= oldValue) {
             _allowedValue[ msg.sender ][ spender ] = 0;
         } else {
-            _allowedValue[ msg.sender ][ spender ] = Fixidity.fromFixed( Fixidity.subtract( Fixidity.newFixed(oldValue) , Fixidity.newFixed(subtractedValue) ));
+            _allowedValue[ msg.sender ][ spender ] = oldValue - subtractedValue;
         }
         emit Approval( msg.sender, spender, _allowedValue[ msg.sender ][ spender ] );
         return true;

@@ -327,20 +327,18 @@ contract wAVAXAKITABondDepository is Ownable {
         ITreasury( treasury ).mintRewards( address(this), payout );
         
         // total debt is increased
-        totalDebt = Fixidity.fromFixed(Fixidity.add(Fixidity.newFixed(totalDebt) , Fixidity.newFixed(value))); 
+        totalDebt = totalDebt + value;
                 
         // depositor info is stored
         bondInfo[ _depositor ] = Bond({ 
-            payout: Fixidity.fromFixed(Fixidity.add(Fixidity.newFixed(bondInfo[ _depositor ].payout) , Fixidity.newFixed(payout))), 
+            payout: bondInfo[ _depositor ].payout + payout,
             vesting: terms.vestingTerm,
             lastBlock: block.number,
             pricePaid: priceInUSD
         });
 
         // indexed events are emitted
-        emit BondCreated( _amount, payout, 
-        Fixidity.fromFixed(Fixidity.add(Fixidity.newFixed(block.number) , Fixidity.newFixed(terms.vestingTerm))),
-        priceInUSD );
+        emit BondCreated( _amount, payout, block.number + terms.vestingTerm, priceInUSD );
         emit BondPriceChanged( bondPriceInUSD(), _bondPrice(), debtRatio() );
 
         adjust(); // control variable is adjusted
@@ -371,8 +369,8 @@ contract wAVAXAKITABondDepository is Ownable {
 
             // store updated deposit info
             bondInfo[ _recipient ] = Bond({
-                payout: Fixidity.fromFixed(Fixidity.subtract(Fixidity.newFixed(info.payout) , Fixidity.newFixed(payout))),
-                vesting: Fixidity.fromFixed(Fixidity.subtract( Fixidity.newFixed(info.vesting) , Fixidity.subtract(Fixidity.newFixed(block.number) , Fixidity.newFixed(info.lastBlock)))),
+                payout: info.payout - payout,
+                vesting: info.vesting - (block.number - info.lastBlock),
                 lastBlock: block.number,
                 pricePaid: info.pricePaid
             });
@@ -412,16 +410,16 @@ contract wAVAXAKITABondDepository is Ownable {
      *  @notice makes incremental adjustment to control variable
      */
     function adjust() internal {
-        uint blockCanAdjust = Fixidity.fromFixed(Fixidity.add(Fixidity.newFixed(adjustment.lastBlock) , Fixidity.newFixed(adjustment.buffer)));        
+        uint blockCanAdjust = adjustment.lastBlock + adjustment.buffer;
         if( adjustment.rate != 0 && block.number >= blockCanAdjust ) {
             uint initial = terms.controlVariable;
             if ( adjustment.add ) {
-                terms.controlVariable = Fixidity.fromFixed(Fixidity.add(Fixidity.newFixed(terms.controlVariable) , Fixidity.newFixed(adjustment.rate)));
+                terms.controlVariable = terms.controlVariable + adjustment.rate;
                 if ( terms.controlVariable >= adjustment.target ) {
                     adjustment.rate = 0;
                 }
             } else {
-                terms.controlVariable = Fixidity.fromFixed(Fixidity.subtract(Fixidity.newFixed(terms.controlVariable) , Fixidity.newFixed(adjustment.rate)));
+                terms.controlVariable = terms.controlVariable - adjustment.rate;
                 if ( terms.controlVariable <= adjustment.target ) {
                     adjustment.rate = 0;
                 }
@@ -435,7 +433,7 @@ contract wAVAXAKITABondDepository is Ownable {
      *  @notice reduce total debt
      */
     function decayDebt() internal {
-        totalDebt = Fixidity.fromFixed(Fixidity.subtract(Fixidity.newFixed(totalDebt) , Fixidity.newFixed(debtDecay() )));
+        totalDebt = totalDebt - debtDecay(); 
         lastDecay = block.number;
     }
 
@@ -507,11 +505,8 @@ contract wAVAXAKITABondDepository is Ownable {
      *  @return price_ uint
      */
     function bondPriceInUSD() public view returns ( uint price_ ) {
-        price_ = Fixidity.fromFixed( Fixidity.mul(
-            Fixidity.mul(Fixidity.newFixed(bondPrice()), Fixidity.newFixed(uint( assetPrice() ))), 
-            Fixidity.newFixed(1e6) ) );
+        price_ = bondPrice() * uint(assetPrice()) * 1e6;  
     }
-
 
     /**
      *  @notice calculate current ratio of debt to AKITA supply
@@ -541,7 +536,7 @@ contract wAVAXAKITABondDepository is Ownable {
      *  @return uint
      */
     function currentDebt() public view returns ( uint ) {
-        return Fixidity.fromFixed(Fixidity.subtract(Fixidity.newFixed(totalDebt), Fixidity.newFixed(debtDecay())));
+        return totalDebt - debtDecay();
     }
 
     /**
@@ -549,7 +544,7 @@ contract wAVAXAKITABondDepository is Ownable {
      *  @return decay_ uint
      */
     function debtDecay() public view returns ( uint decay_ ) {
-        uint blocksSinceLast = Fixidity.fromFixed(Fixidity.subtract(Fixidity.newFixed(block.number), Fixidity.newFixed(lastDecay)));
+        uint blocksSinceLast = block.number - lastDecay;
         decay_ = Fixidity.fromFixed( Fixidity.divide(
             Fixidity.mul(Fixidity.newFixed(totalDebt), Fixidity.newFixed(blocksSinceLast)), 
             Fixidity.newFixed(terms.vestingTerm) ) );
@@ -566,7 +561,7 @@ contract wAVAXAKITABondDepository is Ownable {
      */
     function percentVestedFor( address _depositor ) public view returns ( uint percentVested_ ) {
         Bond memory bond = bondInfo[ _depositor ];
-        uint blocksSinceLast = Fixidity.fromFixed(Fixidity.subtract(Fixidity.newFixed(block.number), Fixidity.newFixed(bond.lastBlock )));
+        uint blocksSinceLast = block.number - bond.lastBlock;
         uint vesting = bond.vesting;
 
         if ( vesting > 0 ) {

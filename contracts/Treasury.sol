@@ -6,67 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-
-library SafeMath {
-
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    function add32(uint32 a, uint32 b) internal pure returns (uint32) {
-        uint32 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    function mul32(uint32 a, uint32 b) internal pure returns (uint32) {
-        if (a == 0) {
-            return 0;
-        }
-
-        uint32 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-        return c;
-    }
-}
-
 interface IERC20Mintable {
   function mint( uint256 amount_ ) external;
 
@@ -83,7 +22,6 @@ interface IBondCalculator {
 contract AkitaTreasury is Ownable {
 
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
     event Deposit( address indexed token, uint amount, uint value );
     event Withdrawal( address indexed token, uint amount, uint value );
@@ -182,10 +120,10 @@ contract AkitaTreasury is Ownable {
         }
 
         uint value = valueOf(_token, _amount);
-        send_ =  value.sub(_profit);
+        send_ =  value - _profit;
          IERC20Mintable( address(AKITA) ).mint( msg.sender, send_ );
 
-        totalReserves =  totalReserves.add(value);
+        totalReserves =  totalReserves + value;
         emit ReservesUpdated( totalReserves );
 
         emit Deposit( _token, _amount, value );
@@ -203,7 +141,7 @@ contract AkitaTreasury is Ownable {
         uint value = valueOf( _token, _amount );
         IAKITAERC20(address(AKITA)).burnFrom( msg.sender, value );
 
-        totalReserves =  totalReserves.sub(value);
+        totalReserves =  totalReserves - value;
         emit ReservesUpdated( totalReserves );
 
         IERC20( _token ).safeTransfer( msg.sender, _amount );
@@ -223,15 +161,15 @@ contract AkitaTreasury is Ownable {
         uint value = valueOf( _token, _amount );
 
         uint maximumDebt = sgAKITA.balanceOf( msg.sender );
-        uint availableDebt = maximumDebt.sub(debtorBalance[ msg.sender ]);
+        uint availableDebt = maximumDebt - debtorBalance[ msg.sender ];
 
         require( value <= availableDebt, "ExceedsDL" );
 
-        debtorBalance[ msg.sender ] =  debtorBalance[ msg.sender ].add(value);
-        totalDebt =  totalDebt.add(value);
+        debtorBalance[ msg.sender ] += value;
+        totalDebt += value;
   
 
-        totalReserves =  totalReserves.sub(value);
+        totalReserves =  totalReserves - value;
         emit ReservesUpdated( totalReserves );
 
         IERC20( _token ).transfer( msg.sender, _amount );
@@ -249,9 +187,9 @@ contract AkitaTreasury is Ownable {
         require( isReserveToken[ _token ], "NA" );
         IERC20( _token ).safeTransferFrom( msg.sender, address(this), _amount );
         uint value = valueOf( _token, _amount );
-        debtorBalance[ msg.sender ] = debtorBalance[ msg.sender ].sub(value);
-        totalDebt = totalDebt.sub(value);
-        totalReserves =  totalReserves.add(value);
+        debtorBalance[ msg.sender ] -= value;
+        totalDebt = totalDebt - value;
+        totalReserves =  totalReserves + value;
         emit ReservesUpdated( totalReserves );
         emit RepayDebt( msg.sender, _token, _amount, value );
     }
@@ -263,8 +201,8 @@ contract AkitaTreasury is Ownable {
     function repayDebtWithAKITA( uint _amount ) external {
         require( isDebtor[ msg.sender ], "NAPP" );
         IAKITAERC20( address(AKITA) ).burnFrom( msg.sender, _amount );
-        debtorBalance[ msg.sender ] = debtorBalance[ msg.sender ].sub(_amount);
-        totalDebt =  totalDebt.sub(_amount);
+        debtorBalance[ msg.sender ] -= _amount;
+        totalDebt =  totalDebt - _amount;
         emit RepayDebt( msg.sender, address(AKITA) , _amount, _amount );
     }
 
@@ -282,7 +220,7 @@ contract AkitaTreasury is Ownable {
 
         uint value = valueOf(_token, _amount);
         require( value <= excessReserves(), "IR" );
-        totalReserves =  totalReserves.sub(value);
+        totalReserves -= value;
         emit ReservesUpdated( totalReserves );
 
         IERC20( _token ).safeTransfer( msg.sender, _amount );
@@ -304,7 +242,7 @@ contract AkitaTreasury is Ownable {
         @return uint
      */
     function excessReserves() public view returns ( uint ) {
-        return totalReserves.sub( AKITA.totalSupply().sub( totalDebt ) );
+        return totalReserves - AKITA.totalSupply() - totalDebt;
     }
     /**
         @notice takes inventory of all tracked assets
@@ -313,14 +251,10 @@ contract AkitaTreasury is Ownable {
     function auditReserves() external onlyOwner {
         uint reserves;
         for( uint i = 0; i < reserveTokens.length; i++ ) {
-            reserves =  reserves.add ( 
-                valueOf( reserveTokens[ i ], IERC20( reserveTokens[ i ] ).balanceOf( address(this) ) )
-             );
+            reserves += valueOf( reserveTokens[ i ], IERC20( reserveTokens[ i ] ).balanceOf( address(this) ) );
         }
         for( uint i = 0; i < liquidityTokens.length; i++ ) {
-            reserves =  reserves.add (
-                valueOf( liquidityTokens[ i ], IERC20( liquidityTokens[ i ] ).balanceOf( address(this) ) )
-            );
+            reserves +=   valueOf( liquidityTokens[ i ], IERC20( liquidityTokens[ i ] ).balanceOf( address(this) ) );
         }
         totalReserves = reserves;
         emit ReservesUpdated( reserves );
@@ -334,7 +268,7 @@ contract AkitaTreasury is Ownable {
      */
     function valueOf( address _token, uint _amount ) public view returns ( uint value_ ) {
         if ( isReserveToken[ _token ] ) {
-            value_ =  _amount.mul( 10 ** ERC20( address(AKITA) ).decimals() ).div( 10 ** ERC20( _token ).decimals() );
+            value_ =  _amount * ( 10 ** ERC20( address(AKITA) ).decimals() ) / ( 10 ** ERC20( _token ).decimals() );
         } else if ( isLiquidityToken[ _token ] ) {
             value_ = IBondCalculator( bondCalculator[ _token ] ).valuation( _token, _amount );
         }
@@ -348,25 +282,25 @@ contract AkitaTreasury is Ownable {
    function queue( MANAGING _managing, address _address ) external onlyOwner returns ( bool ) {
         require( _address != address(0) );
         if ( _managing == MANAGING.RESERVEDEPOSITOR ) { // 0
-            reserveDepositorQueue[ _address ] = block.number.add( blocksNeededForQueue );
+            reserveDepositorQueue[ _address ] = block.number + blocksNeededForQueue;
         } else if ( _managing == MANAGING.RESERVESPENDER ) { // 1
-            reserveSpenderQueue[ _address ] =  block.number.add( blocksNeededForQueue );
+            reserveSpenderQueue[ _address ] =  block.number + blocksNeededForQueue;
         } else if ( _managing == MANAGING.RESERVETOKEN ) { // 2
-             reserveTokenQueue[ _address ] =  block.number.add( blocksNeededForQueue );
+             reserveTokenQueue[ _address ] =  block.number + blocksNeededForQueue;
         } else if ( _managing == MANAGING.RESERVEMANAGER ) { // 3
-            ReserveManagerQueue[ _address ] = block.number.add( blocksNeededForQueue.mul( 2 ) );
+            ReserveManagerQueue[ _address ] = block.number + blocksNeededForQueue * 2;
         } else if ( _managing == MANAGING.LIQUIDITYDEPOSITOR ) { // 4
-            LiquidityDepositorQueue[ _address ] =  block.number.add( blocksNeededForQueue );
+            LiquidityDepositorQueue[ _address ] =  block.number + blocksNeededForQueue;
         } else if ( _managing == MANAGING.LIQUIDITYTOKEN ) { // 5
-            LiquidityTokenQueue[ _address ] =  block.number.add( blocksNeededForQueue );
+            LiquidityTokenQueue[ _address ] =  block.number + blocksNeededForQueue;
         } else if ( _managing == MANAGING.LIQUIDITYMANAGER ) { // 6
-            LiquidityManagerQueue[ _address ] = block.number.add( blocksNeededForQueue.mul( 2 ) );
+            LiquidityManagerQueue[ _address ] = block.number + blocksNeededForQueue * 2;
         } else if ( _managing == MANAGING.DEBTOR ) { // 7
-            debtorQueue[ _address ] =  block.number.add( blocksNeededForQueue );
+            debtorQueue[ _address ] =  block.number + blocksNeededForQueue;
          } else if ( _managing == MANAGING.REWARDMANAGER ) { // 8
-            rewardManagerQueue[ _address ] =  block.number.add( blocksNeededForQueue );
+            rewardManagerQueue[ _address ] =  block.number + blocksNeededForQueue;
         } else if ( _managing == MANAGING.SGAKITA ) { // 9
-            sgAKITAQueue = block.number.add( blocksNeededForQueue );
+            sgAKITAQueue = block.number + blocksNeededForQueue;
         } else return false;
 
         emit ChangeQueued( _managing, _address );

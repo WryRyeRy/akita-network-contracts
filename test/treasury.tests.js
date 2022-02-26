@@ -22,5 +22,9 @@ describe("Testing Treasury.sol", function () {
 
       expect(true).to.equal(true);
     });
+
+    it("Should not be able to repay debt using other token", async () => {
+      
+    });
   });
 });

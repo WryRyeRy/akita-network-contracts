@@ -769,7 +769,19 @@ contract VaultOwned is Ownable {
     
   address internal _vault;
 
-  function setVault( address vault_ ) external onlyOwner() returns ( bool ) {
+  uint256 private constant _TIMELOCK = 2 days;
+  uint256 public timelock = 0;
+
+  modifier notTimeLocked() {
+    require(timelock != 0, "Timelocked");
+    _;
+  }
+
+  function openTimeLock() external onlyOwner(){
+    timelock = block.timestamp + _TIMELOCK;
+  }
+
+  function setVault( address vault_ ) external onlyOwner() notTimeLocked() returns ( bool ) {
     _vault = vault_;
 
     return true;

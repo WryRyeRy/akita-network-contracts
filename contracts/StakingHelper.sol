@@ -2,6 +2,7 @@
 pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IStaking {
     function stake( uint _amount, address _recipient ) external returns ( bool );
@@ -9,6 +10,8 @@ interface IStaking {
 }
 
 contract StakingHelper {
+
+    using SafeERC20 for IERC20;
 
     address public immutable staking;
     IERC20 public  AKITA;
@@ -21,7 +24,7 @@ contract StakingHelper {
     }
 
     function stake( uint _amount ) external {
-        AKITA.transferFrom( msg.sender, address(this), _amount );
+        AKITA.safeTransferFrom( msg.sender, address(this), _amount );
         AKITA.approve( staking, _amount );
         IStaking( staking ).stake( _amount, msg.sender );
         IStaking( staking ).claim( msg.sender );

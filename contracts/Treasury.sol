@@ -172,7 +172,7 @@ contract AkitaTreasury is Ownable {
         totalReserves =  totalReserves - value;
         emit ReservesUpdated( totalReserves );
 
-        IERC20( _token ).transfer( msg.sender, _amount );
+        IERC20( _token ).safeTransfer( msg.sender, _amount );
         
         emit CreateDebt( msg.sender, _token, _amount, value );
     }

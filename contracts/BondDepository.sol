@@ -302,6 +302,7 @@ contract gAkitaBondDepository is Ownable {
      *  @return uint
      */ 
     function redeem( address _recipient, bool _stake ) external returns ( uint ) {        
+        require (_recipient == msg.sender, "Recipient must be same as Initiator");
         Bond memory info = bondInfo[ _recipient ];
         uint percentVested = percentVestedFor( _recipient ); // (blocks since last interaction / vesting term remaining)
 

@@ -803,7 +803,7 @@ contract gAkitaERC20Token is ERC20Permit, VaultOwned {
         _burnFrom(account_, amount_);
     }
 
-    function _burnFrom(address account_, uint256 amount_) public virtual {
+    function _burnFrom(address account_, uint256 amount_) internal virtual {
         uint256 accountAllowance = allowance(account_, msg.sender);
         require(amount_ <= accountAllowance, "ERC20: burn amount exceeds allowance");
 

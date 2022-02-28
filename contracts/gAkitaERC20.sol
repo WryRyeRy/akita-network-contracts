@@ -739,6 +739,38 @@ contract Ownable is IOwnable {
 
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+  // TIMELOCKS
+  uint256 private constant _TIMELOCK = 2 days;
+  uint256 public transferTimelock = 0;
+  uint256 public renounceTimelock = 0;
+
+  modifier notTransferTimeLocked() {
+    require(transferTimelock != 0 && transferTimelock <= block.timestamp, "Timelocked");
+    _;
+  }
+
+  function openTransferTimeLock() external onlyOwner() {
+    transferTimelock = block.timestamp + _TIMELOCK;
+  }
+
+  function cancelTransferTimeLock() external onlyOwner() {
+    transferTimelock = 0;
+  }
+
+  modifier notRenounceTimeLocked() {
+    require(renounceTimelock != 0 && renounceTimelock <= block.timestamp, "Timelocked");
+    _;
+  }
+
+  function openRenounceTimeLock() external onlyOwner() {
+    renounceTimelock = block.timestamp + _TIMELOCK;
+  }
+
+  function cancelRenounceTimeLock() external onlyOwner() {
+    renounceTimelock = 0;
+  }
+  // END TIMELOCKS
+
   constructor () {
     _owner = msg.sender;
     emit OwnershipTransferred( address(0), _owner );
@@ -753,15 +785,17 @@ contract Ownable is IOwnable {
     _;
   }
 
-  function renounceOwnership() public virtual override onlyOwner() {
+  function renounceOwnership() public virtual override onlyOwner() notRenounceTimeLocked() {
     emit OwnershipTransferred( _owner, address(0) );
     _owner = address(0);
+    renounceTimelock = 0;
   }
 
-  function transferOwnership( address newOwner_ ) public virtual override onlyOwner() {
+  function transferOwnership( address newOwner_ ) public virtual override onlyOwner() notTransferTimeLocked() {
     require( newOwner_ != address(0), "Ownable: new owner is the zero address");
     emit OwnershipTransferred( _owner, newOwner_ );
     _owner = newOwner_;
+    transferTimelock = 0;
   }
 }
 
@@ -804,11 +838,28 @@ contract VaultOwned is Ownable {
 
 contract gAkitaERC20Token is ERC20Permit, VaultOwned {
 
+    uint256 private constant _TIMELOCK = 2 days;
+    uint256 public mintTimelock = 0;
+
     constructor() ERC20("gAkita", "gAKITA", 9) {
     }
 
-    function mint(address account_, uint256 amount_) external onlyVault() {
+    modifier notMintTimeLocked() {
+      require(mintTimelock != 0 && mintTimelock <= block.timestamp, "Timelocked");
+      _;
+    }
+
+    function openMintTimeLock() external onlyOwner() {
+      mintTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelMintTimeLock() external onlyOwner() {
+      mintTimelock = 0;
+    }
+
+    function mint(address account_, uint256 amount_) external onlyVault() notMintTimeLocked() {
         _mint(account_, amount_);
+        mintTimelock = 0;
     }
 
     function burn(uint256 amount) public virtual {

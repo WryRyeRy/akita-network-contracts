@@ -2,7 +2,6 @@
 pragma solidity 0.8.10;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "./Fixidity.sol";
 
 
@@ -184,12 +183,6 @@ contract sgAkita is ERC20, Ownable {
          _allowedValue[ msg.sender ][ spender ] = value;
          emit Approval( msg.sender, spender, value );
          return true;
-    }
-
-    // What gets called in a permit
-    function _approve( address owner, address spender, uint256 value ) internal override virtual {
-        _allowedValue[owner][spender] = value;
-        emit Approval( owner, spender, value );
     }
 
     function increaseAllowance( address spender, uint256 addedValue ) public override returns (bool) {

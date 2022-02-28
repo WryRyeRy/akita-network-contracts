@@ -246,7 +246,6 @@ contract gAkitaBondDepository is Ownable {
         require( _depositor != address(0), "Invalid address" );
 
         decayDebt();
-        require( totalDebt <= terms.maxDebt, "Max capacity reached" );
         
         uint priceInUSD = bondPriceInUSD(); // Stored in bond info
         uint nativePrice = _bondPrice();
@@ -254,6 +253,11 @@ contract gAkitaBondDepository is Ownable {
         require( _maxPrice >= nativePrice, "Slippage limit: more than max price" ); // slippage protection
 
         uint value = ITreasury( treasury ).valueOf( address(principle) , _amount );
+        
+        // total debt is increased
+        totalDebt = totalDebt + value; 
+        require( totalDebt <= terms.maxDebt, "Max capacity reached" );
+
         uint payout = payoutFor( value ); // payout to bonder is computed
 
         require( payout >= 10000000, "Bond too small" ); // must be > 0.01 AKITA ( underflow protection )
@@ -275,9 +279,6 @@ contract gAkitaBondDepository is Ownable {
         if ( fee != 0 ) { // fee is transferred to dao 
             AKITA.safeTransfer( DAO, fee ); 
         }
-        
-        // total debt is increased
-        totalDebt = totalDebt + value; 
                 
         // depositor info is stored
         bondInfo[ _depositor ] = Bond({ 

@@ -773,16 +773,21 @@ contract VaultOwned is Ownable {
   uint256 public timelock = 0;
 
   modifier notTimeLocked() {
-    require(timelock != 0, "Timelocked");
+    require(timelock != 0 && timelock <= block.timestamp, "Timelocked");
     _;
   }
 
-  function openTimeLock() external onlyOwner(){
+  function openTimeLock() external onlyOwner() {
     timelock = block.timestamp + _TIMELOCK;
+  }
+
+  function cancelTimeLock() external onlyOwner() {
+    timelock = 0;
   }
 
   function setVault( address vault_ ) external onlyOwner() notTimeLocked() returns ( bool ) {
     _vault = vault_;
+    timelock = 0;
 
     return true;
   }
@@ -795,7 +800,6 @@ contract VaultOwned is Ownable {
     require( _vault == msg.sender, "VaultOwned: caller is not the Vault" );
     _;
   }
-
 }
 
 contract gAkitaERC20Token is ERC20Permit, VaultOwned {

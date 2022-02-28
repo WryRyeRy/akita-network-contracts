@@ -5,6 +5,8 @@ const { solidity } = require("ethereum-waffle");
 use(solidity);
 
 describe("Testing gAkitaERC20.sol", function () {
+  const address = "0x831654134062Dc00fe93bA281AF75a8Ffa740787";
+  const zeroAddress = "0x0000000000000000000000000000000000000000";
   let vaultOwned;
 
   // quick fix to let gas reporter fetch data from gas station & coinmarketcap
@@ -24,33 +26,61 @@ describe("Testing gAkitaERC20.sol", function () {
     });
 
     it("Should not be able to change valut address if timelock is 0", async () => {
-      await expect(
-        vaultOwned.setVault("0x831654134062Dc00fe93bA281AF75a8Ffa740787")
-      ).to.be.revertedWith("Timelocked");
+      await expect(vaultOwned.setVault(address)).to.be.revertedWith(
+        "Timelocked"
+      );
 
       const vaultAddress = await vaultOwned.vault();
-      expect(vaultAddress).to.equal(
-        "0x0000000000000000000000000000000000000000"
-      );
+      expect(vaultAddress).to.equal(zeroAddress);
     });
 
     it("Should be able to open timelock", async () => {
       await vaultOwned.openTimeLock();
 
-      const blockNumber = await ethers.provider.getBlockNumber();
-      const block = await ethers.provider.getBlock(blockNumber);
-      const timestampBefore = block.timestamp;
-
       const timeLock = await vaultOwned.timelock();
-      expect(timeLock).to.equal(timestampBefore + 172800);
+      expect(timeLock).to.equal((await getBlockTime()) + 172800);
     });
 
-    it("Should not be able to set vault during timelock", () => {});
+    it("Should not be able to set vault during timelock", async () => {
+      await expect(vaultOwned.setVault(address)).to.be.revertedWith(
+        "Timelocked"
+      );
 
-    it("Should be able to set valut after timelock expired", () => {});
+      const vaultAddress = await vaultOwned.vault();
+      expect(vaultAddress).to.equal(zeroAddress);
+    });
 
-    it("Should add timelock after setVault", () => {});
+    it("Should be able to set valut after timelock expired", async () => {
+      await ethers.provider.send("evm_mine", [(await getBlockTime()) + 432000]); // move time 4 days
 
-    it("Should be able to cancel unlock", () => {});
+      await vaultOwned.setVault(address);
+
+      const vaultAddress = await vaultOwned.vault();
+      expect(vaultAddress).to.equal(address);
+    });
+
+    it("Should add timelock to 0 after setVault", async () => {
+      const timeLock = await vaultOwned.timelock();
+
+      expect(timeLock).to.equal(0);
+    });
+
+    it("Should be able to cancel unlock", async () => {
+      await vaultOwned.openTimeLock();
+
+      let timeLock = await vaultOwned.timelock();
+      expect(timeLock).to.equal((await getBlockTime()) + 172800);
+
+      await vaultOwned.cancelTimeLock();
+
+      timeLock = await vaultOwned.timelock();
+      expect(timeLock).to.equal(0);
+    });
   });
+
+  const getBlockTime = async () => {
+    const blockNumber = await ethers.provider.getBlockNumber();
+    const block = await ethers.provider.getBlock(blockNumber);
+    return block.timestamp;
+  };
 });

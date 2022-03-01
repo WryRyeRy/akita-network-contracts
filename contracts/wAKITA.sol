@@ -6,7 +6,7 @@ import "./Fixidity.sol";
 interface IStaking {
     function stake( uint _amount, address _recipient ) external returns ( bool );
 
-    function unstake( uint _amount, address _recipient ) external returns ( bool );
+    function unstake( uint _amount, bool _trigger ) external returns ( bool );
 
     function index() external view returns ( uint );
 }
@@ -53,7 +53,7 @@ contract wAKITA is ERC20 {
         
         uint value = sgAKITAValue( _amount );
         sgAKITA.approve( staking, value ); // unstake sgAKITA for AKITA
-        IStaking( staking ).unstake( value, address(this) );
+        IStaking( staking ).unstake( value, false );
 
         AKITA.transfer( msg.sender, value );
         return value;

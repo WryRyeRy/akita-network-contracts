@@ -82,7 +82,7 @@ contract AkitaBondingCalculator is IBondingCalculator {
     function getKValue( address _pair ) public view returns( uint k_ ) {
         uint token0 = IERC20Metadata(IUniswapV2Pair( _pair ).token0()).decimals();
         uint token1 = IERC20Metadata(IUniswapV2Pair( _pair ).token1()).decimals();
-        uint decimals = (token1 - IERC20Metadata( _pair ).decimals()) + token0; 
+        uint decimals = (token1 + token0) - IERC20Metadata( _pair ).decimals();
 
         (uint reserve0, uint reserve1, ) = IUniswapV2Pair( _pair ).getReserves();
         k_ = Fixidity.fromFixed( 

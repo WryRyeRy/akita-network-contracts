@@ -365,7 +365,7 @@ contract wAVAXAKITABondDepository is Ownable {
             // calculate payout vested
             uint payout = Fixidity.fromFixed(Fixidity.divide(
                 Fixidity.mul(
-                    Fixidity.newFixed(percentVested),Fixidity.newFixed(info.payout)),Fixidity.newFixed(1000)));
+                    Fixidity.newFixed(percentVested),Fixidity.newFixed(info.payout)),Fixidity.newFixed(10000)));
 
             // store updated deposit info
             bondInfo[ _recipient ] = Bond({

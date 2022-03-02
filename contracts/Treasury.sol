@@ -72,7 +72,7 @@ contract AkitaTreasury is Ownable {
     address[] public debtors; 
     mapping( address => bool ) public isDebtor;
     mapping( address => uint ) public debtorQueue;
-    mapping( address => uint ) public debtorBalance;
+    mapping( address => mapping( address => uint )) public debtorBalance;
 
     address[] public rewardManagers; 
     mapping( address => bool ) public isRewardManager;
@@ -161,14 +161,13 @@ contract AkitaTreasury is Ownable {
         uint value = valueOf( _token, _amount );
 
         uint maximumDebt = sgAKITA.balanceOf( msg.sender );
-        uint availableDebt = maximumDebt - debtorBalance[ msg.sender ];
+        uint availableDebt = maximumDebt - debtorBalance[ msg.sender ][ _token ];
 
         require( value <= availableDebt, "ExceedsDL" );
 
-        debtorBalance[ msg.sender ] += value;
+        debtorBalance[ msg.sender ][ _token ] += value;
         totalDebt += value;
   
-
         totalReserves =  totalReserves - value;
         emit ReservesUpdated( totalReserves );
 
@@ -187,23 +186,11 @@ contract AkitaTreasury is Ownable {
         require( isReserveToken[ _token ], "NA" );
         IERC20( _token ).safeTransferFrom( msg.sender, address(this), _amount );
         uint value = valueOf( _token, _amount );
-        debtorBalance[ msg.sender ] -= value;
+        debtorBalance[ msg.sender ][ _token ] -= value;
         totalDebt = totalDebt - value;
         totalReserves =  totalReserves + value;
         emit ReservesUpdated( totalReserves );
         emit RepayDebt( msg.sender, _token, _amount, value );
-    }
-
-    /**
-        @notice allow approved address to repay borrowed reserves with AKITA
-        @param _amount uint
-     */
-    function repayDebtWithAKITA( uint _amount ) external {
-        require( isDebtor[ msg.sender ], "NAPP" );
-        IAKITAERC20( address(AKITA) ).burnFrom( msg.sender, _amount );
-        debtorBalance[ msg.sender ] -= _amount;
-        totalDebt =  totalDebt - _amount;
-        emit RepayDebt( msg.sender, address(AKITA) , _amount, _amount );
     }
 
     /**

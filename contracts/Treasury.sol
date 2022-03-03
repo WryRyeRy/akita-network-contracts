@@ -162,7 +162,7 @@ contract AkitaTreasury is Ownable {
         uint value = valueOf( _token, _amount );
 
         uint maximumDebt = sgAKITA.balanceOf( msg.sender );
-        uint availableDebt = maximumDebt - debtorBalance[ msg.sender ][ _token ];
+        uint availableDebt = maximumDebt - deptorTotalBalance[ msg.sender ];
 
         require( value <= availableDebt, "ExceedsDL" );
 

@@ -73,7 +73,8 @@ contract AkitaTreasury is Ownable {
     mapping( address => bool ) public isDebtor;
     mapping( address => uint ) public debtorQueue;
     mapping( address => mapping( address => uint )) public debtorBalance;
-    mapping( address => uint256 ) public deptorTotalBalance;
+    mapping( address => uint256 ) public debtorTotalBalance;
+    mapping( address => uint256 ) public debtorCollaterals;
 
     address[] public rewardManagers; 
     mapping( address => bool ) public isRewardManager;
@@ -162,18 +163,20 @@ contract AkitaTreasury is Ownable {
         uint value = valueOf( _token, _amount );
 
         uint maximumDebt = sgAKITA.balanceOf( msg.sender );
-        uint availableDebt = maximumDebt - deptorTotalBalance[ msg.sender ];
+        uint availableDebt = maximumDebt - debtorTotalBalance[ msg.sender ];
 
         require( value <= availableDebt, "ExceedsDL" );
 
         debtorBalance[ msg.sender ][ _token ] += value;
-        deptorTotalBalance[ msg.sender ] += value;
+        debtorTotalBalance[ msg.sender ] += value;
         totalDebt += value;
   
         totalReserves =  totalReserves - value;
         emit ReservesUpdated( totalReserves );
 
         IERC20( _token ).safeTransfer( msg.sender, _amount );
+        debtorCollaterals[ msg.sender] += _amount;
+        sgAKITA.safeTransferFrom( msg.sender, address(this), _amount );
         
         emit CreateDebt( msg.sender, _token, _amount, value );
     }
@@ -187,9 +190,14 @@ contract AkitaTreasury is Ownable {
         require( isDebtor[ msg.sender ], "NA" );
         require( isReserveToken[ _token ], "NA" );
         IERC20( _token ).safeTransferFrom( msg.sender, address(this), _amount );
+        
+        debtorCollaterals[ msg.sender] -= _amount;
+        sgAKITA.safeTransfer( msg.sender, _amount );
+
         uint value = valueOf( _token, _amount );
+
         debtorBalance[ msg.sender ][ _token ] -= value;
-        deptorTotalBalance[ msg.sender ] -= value;
+        debtorTotalBalance[ msg.sender ] -= value;
 
         totalDebt = totalDebt - value;
         totalReserves =  totalReserves + value;

@@ -73,6 +73,7 @@ contract AkitaTreasury is Ownable {
     mapping( address => bool ) public isDebtor;
     mapping( address => uint ) public debtorQueue;
     mapping( address => mapping( address => uint )) public debtorBalance;
+    mapping( address => uint256 ) public deptorTotalBalance;
 
     address[] public rewardManagers; 
     mapping( address => bool ) public isRewardManager;
@@ -166,6 +167,7 @@ contract AkitaTreasury is Ownable {
         require( value <= availableDebt, "ExceedsDL" );
 
         debtorBalance[ msg.sender ][ _token ] += value;
+        deptorTotalBalance[ msg.sender ] += value;
         totalDebt += value;
   
         totalReserves =  totalReserves - value;
@@ -187,6 +189,8 @@ contract AkitaTreasury is Ownable {
         IERC20( _token ).safeTransferFrom( msg.sender, address(this), _amount );
         uint value = valueOf( _token, _amount );
         debtorBalance[ msg.sender ][ _token ] -= value;
+        deptorTotalBalance[ msg.sender ] -= value;
+
         totalDebt = totalDebt - value;
         totalReserves =  totalReserves + value;
         emit ReservesUpdated( totalReserves );

@@ -1,23 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Fixidity.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-
 interface IOwnable {
-  function policy() external view returns (address);
+  function owner() external view returns (address);
 
-  function renounceManagement() external;
+  function renounceOwnership() external;
   
-  function pushManagement( address newOwner_ ) external;
-  
-  function pullManagement() external;
-  
+  function transferOwnership( address newOwner_ ) external;
 }
-
 
 interface ITreasury {
     function deposit( uint _amount, address _token, uint _profit ) external returns ( bool );
@@ -37,7 +31,71 @@ interface IStakingHelper {
     function stake( uint _amount, address _recipient ) external;
 }
 
+contract Ownable is IOwnable {
+    
+  address internal _owner;
 
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+  // TIMELOCKS
+  uint256 private constant _TIMELOCK = 2 days;
+  uint256 public _transferTimelock = 0;
+  uint256 public _renounceTimelock = 0;
+
+  modifier notTransferTimeLocked() {
+    require(_transferTimelock != 0 && _transferTimelock <= block.timestamp, "Timelocked");
+    _;
+  }
+
+  function openTransferTimeLock() external onlyOwner() {
+    _transferTimelock = block.timestamp + _TIMELOCK;
+  }
+
+  function cancelTransferTimeLock() external onlyOwner() {
+    _transferTimelock = 0;
+  }
+
+  modifier notRenounceTimeLocked() {
+    require(_renounceTimelock != 0 && _renounceTimelock <= block.timestamp, "Timelocked");
+    _;
+  }
+
+  function openRenounceTimeLock() external onlyOwner() {
+    _renounceTimelock = block.timestamp + _TIMELOCK;
+  }
+
+  function cancelRenounceTimeLock() external onlyOwner() {
+    _renounceTimelock = 0;
+  }
+  // END TIMELOCKS
+
+  constructor () {
+    _owner = msg.sender;
+    emit OwnershipTransferred( address(0), _owner );
+  }
+
+  function owner() public view override returns (address) {
+    return _owner;
+  }
+
+  modifier onlyOwner() {
+    require( _owner == msg.sender, "Ownable: caller is not the owner" );
+    _;
+  }
+
+  function renounceOwnership() public virtual override onlyOwner() notRenounceTimeLocked() {
+    emit OwnershipTransferred( _owner, address(0) );
+    _owner = address(0);
+    _renounceTimelock = 0;
+  }
+
+  function transferOwnership( address newOwner_ ) public virtual override onlyOwner() notTransferTimeLocked() {
+    require( newOwner_ != address(0), "Ownable: new owner is the zero address");
+    emit OwnershipTransferred( _owner, newOwner_ );
+    _owner = newOwner_;
+    _transferTimelock = 0;
+  }
+}
 
 contract gAkitaBondDepository is Ownable {
 
@@ -146,7 +204,7 @@ contract gAkitaBondDepository is Ownable {
         uint _fee,
         uint _maxDebt,
         uint _initialDebt
-    ) external onlyOwner {
+    ) external onlyOwner initializeNotTimeLocked {
         require( terms.controlVariable == 0, "Bonds must be initialized from 0" );
         terms = Terms ({
             controlVariable: _controlVariable,
@@ -158,9 +216,8 @@ contract gAkitaBondDepository is Ownable {
         });
         totalDebt = _initialDebt;
         lastDecay = block.number;
+        _initializeTimelock = 0;
     }
-
-
 
     
     /* ======== POLICY FUNCTIONS ======== */
@@ -171,7 +228,7 @@ contract gAkitaBondDepository is Ownable {
      *  @param _parameter PARAMETER
      *  @param _input uint
      */
-    function setBondTerms ( PARAMETER _parameter, uint _input ) external onlyOwner {
+    function setBondTerms ( PARAMETER _parameter, uint _input ) external onlyOwner setBondTermNotTimeLocked {
         if ( _parameter == PARAMETER.PAYOUT ) { // 1
             require( _input <= 1000, "Payout cannot be above 1 percent" );
             terms.maxPayout = _input;
@@ -181,6 +238,7 @@ contract gAkitaBondDepository is Ownable {
         } else if ( _parameter == PARAMETER.DEBT ) { // 3
             terms.maxDebt = _input;
         }
+        _setBondTermTimelock = 0;
     }
 
     /**
@@ -195,7 +253,7 @@ contract gAkitaBondDepository is Ownable {
         uint _increment, 
         uint _target,
         uint _buffer 
-    ) external onlyOwner {
+    ) external onlyOwner setAdjustmentNotTimeLocked {
         require( _increment <= Fixidity.fromFixed(Fixidity.divide( Fixidity.mul( Fixidity.newFixed(terms.controlVariable) , Fixidity.newFixed(25) ) , Fixidity.newFixed(1000) )), "Increment too large" );
 
         adjustment = Adjust({
@@ -205,6 +263,7 @@ contract gAkitaBondDepository is Ownable {
             buffer: _buffer,
             lastBlock: block.number
         });
+        _setAdjustmentTimelock = 0;
     }
 
     /**
@@ -212,7 +271,7 @@ contract gAkitaBondDepository is Ownable {
      *  @param _staking address
      *  @param _helper bool
      */
-    function setStaking( address _staking, bool _helper ) external onlyOwner {
+    function setStaking( address _staking, bool _helper ) external onlyOwner setStakingNotTimeLocked {
         require( _staking != address(0) );
         if ( _helper ) {
             useHelper = true;
@@ -221,6 +280,7 @@ contract gAkitaBondDepository is Ownable {
             useHelper = false;
             staking = _staking;
         }
+        _setStakingTimelock = 0;
     }
 
 
@@ -532,5 +592,65 @@ contract gAkitaBondDepository is Ownable {
         require( address(_token) != address(principle) );
         _token.safeTransfer( DAO,  _token.balanceOf( address(this) ) );
         return true;
+    }
+
+    /* ======== TIMELOCK FUNCTIONS ======== */
+
+    uint256 private constant _TIMELOCK = 2 days;
+    uint256 public _initializeTimelock = 0;
+    uint256 public _setBondTermTimelock = 0;
+    uint256 public _setAdjustmentTimelock = 0;
+    uint256 public _setStakingTimelock = 0;
+
+    modifier initializeNotTimeLocked() {
+        require(_initializeTimelock != 0 && _initializeTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openInitializeTimeLock() external onlyOwner() {
+        _initializeTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelInitializeTimeLock() external onlyOwner() {
+        _initializeTimelock = 0;
+    }
+
+    modifier setBondTermNotTimeLocked() {
+        require(_setBondTermTimelock != 0 && _setBondTermTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openSetBondTermTimeLock() external onlyOwner() {
+        _setBondTermTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelSetBondTermTimeLock() external onlyOwner() {
+        _setBondTermTimelock = 0;
+    }
+
+    modifier setAdjustmentNotTimeLocked() {
+        require(_setAdjustmentTimelock != 0 && _setAdjustmentTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openSetAdjustmentTimeLock() external onlyOwner() {
+        _setAdjustmentTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelSetAdjustmentTimeLock() external onlyOwner() {
+        _setAdjustmentTimelock = 0;
+    }
+
+    modifier setStakingNotTimeLocked() {
+        require(_setStakingTimelock != 0 && _setStakingTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openSetStakingTimeLock() external onlyOwner() {
+        _setStakingTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelSetStakingTimeLock() external onlyOwner() {
+        _setStakingTimelock = 0;
     }
 }

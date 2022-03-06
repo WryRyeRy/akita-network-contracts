@@ -279,6 +279,8 @@ contract sgAkita is ERC20, Ownable {
         return true;
     }
 
+    /* ======== TIMELOCK FUNCTIONS ======== */
+
     modifier setIndexNotTimeLocked() {
         require(_setIndexTimelock != 0 && _setIndexTimelock <= block.timestamp, "Timelocked");
         _;

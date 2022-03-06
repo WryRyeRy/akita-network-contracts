@@ -65,13 +65,13 @@ contract Ownable is IOwnable {
         _;
     }
 
-    function renounceManagement() public virtual override onlyPolicy() {
+    function renounceManagement() public virtual override onlyPolicy() notRenounceTimeLocked {
         emit OwnershipPushed( _owner, address(0) );
         _owner = address(0);
         _renounceTimelock = 0;
     }
 
-    function pushManagement( address newOwner_ ) public virtual override onlyPolicy() {
+    function pushManagement( address newOwner_ ) public virtual override onlyPolicy() notPushTimeLocked {
         require( newOwner_ != address(0), "Ownable: new owner is the zero address");
         emit OwnershipPushed( _owner, newOwner_ );
         _newOwner = newOwner_;

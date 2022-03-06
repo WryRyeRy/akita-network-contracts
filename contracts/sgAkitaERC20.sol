@@ -1,17 +1,93 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.10;
-import "@openzeppelin/contracts/access/Ownable.sol";
+//import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./Fixidity.sol";
 
+interface IOwnable {
+  function owner() external view returns (address);
+
+  function renounceOwnership() external;
+  
+  function transferOwnership( address newOwner_ ) external;
+}
+
+contract Ownable is IOwnable {
+    
+  address internal _owner;
+
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+  // TIMELOCKS
+  uint256 private constant _TIMELOCK = 2 days;
+  uint256 public transferTimelock = 0;
+  uint256 public renounceTimelock = 0;
+
+  modifier notTransferTimeLocked() {
+    require(transferTimelock != 0 && transferTimelock <= block.timestamp, "Timelocked");
+    _;
+  }
+
+  function openTransferTimeLock() external onlyOwner() {
+    transferTimelock = block.timestamp + _TIMELOCK;
+  }
+
+  function cancelTransferTimeLock() external onlyOwner() {
+    transferTimelock = 0;
+  }
+
+  modifier notRenounceTimeLocked() {
+    require(renounceTimelock != 0 && renounceTimelock <= block.timestamp, "Timelocked");
+    _;
+  }
+
+  function openRenounceTimeLock() external onlyOwner() {
+    renounceTimelock = block.timestamp + _TIMELOCK;
+  }
+
+  function cancelRenounceTimeLock() external onlyOwner() {
+    renounceTimelock = 0;
+  }
+  // END TIMELOCKS
+
+  constructor () {
+    _owner = msg.sender;
+    emit OwnershipTransferred( address(0), _owner );
+  }
+
+  function owner() public view override returns (address) {
+    return _owner;
+  }
+
+  modifier onlyOwner() {
+    require( _owner == msg.sender, "Ownable: caller is not the owner" );
+    _;
+  }
+
+  function renounceOwnership() public virtual override onlyOwner() notRenounceTimeLocked() {
+    emit OwnershipTransferred( _owner, address(0) );
+    _owner = address(0);
+    renounceTimelock = 0;
+  }
+
+  function transferOwnership( address newOwner_ ) public virtual override onlyOwner() notTransferTimeLocked() {
+    require( newOwner_ != address(0), "Ownable: new owner is the zero address");
+    emit OwnershipTransferred( _owner, newOwner_ );
+    _owner = newOwner_;
+    transferTimelock = 0;
+  }
+}
 
 contract sgAkita is ERC20, Ownable {
-
 
     modifier onlyStakingContract() {
         require( msg.sender == stakingContract );
         _;
     }
+
+    uint256 private constant _TIMELOCK = 2 days;
+    uint256 public setIndexTimelock = 0;
+    uint256 public rebaseTimelock = 0;
 
     address public stakingContract;
     address public initializer;
@@ -68,9 +144,10 @@ contract sgAkita is ERC20, Ownable {
         return true;
     }
 
-    function setIndex( uint _INDEX ) external onlyOwner returns ( bool ) {
+    function setIndex( uint _INDEX ) external onlyOwner setIndexNotTimeLocked returns ( bool ) {
         require( INDEX == 0 );
         INDEX = gonsForBalance( _INDEX );
+        setIndexTimelock = 0;
         return true;
     }
 
@@ -79,7 +156,7 @@ contract sgAkita is ERC20, Ownable {
         @param profit_ uint256
         @return uint256
      */
-    function rebase( uint256 profit_, uint epoch_ ) public onlyStakingContract() returns ( uint256 ) {
+    function rebase( uint256 profit_, uint epoch_ ) public onlyStakingContract() rebaseNotTimeLocked returns ( uint256 ) {
         uint256 rebaseAmount;
         uint256 circulatingSupply_ = circulatingSupply();
 
@@ -200,5 +277,31 @@ contract sgAkita is ERC20, Ownable {
         }
         emit Approval( msg.sender, spender, _allowedValue[ msg.sender ][ spender ] );
         return true;
+    }
+
+    modifier setIndexNotTimeLocked() {
+        require(setIndexTimelock != 0 && setIndexTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openSetIndexTimeLock() external onlyOwner() {
+        setIndexTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelSetIndexTimeLock() external onlyOwner() {
+        setIndexTimelock = 0;
+    }
+
+    modifier rebaseNotTimeLocked() {
+        require(rebaseTimelock != 0 && rebaseTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openRebaseTimeLock() external onlyStakingContract() {
+        rebaseTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelRebaseTimeLock() external onlyStakingContract() {
+        rebaseTimelock = 0;
     }
 }

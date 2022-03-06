@@ -36,15 +36,17 @@ contract Ownable is IOwnable {
         _;
     }
 
-    function renounceManagement() public virtual override onlyManager() {
+    function renounceManagement() public virtual override onlyManager() notRenounceTimeLocked {
         emit OwnershipPushed( _owner, address(0) );
         _owner = address(0);
+        _renounceTimelock = 0;
     }
 
-    function pushManagement( address newOwner_ ) public virtual override onlyManager() {
+    function pushManagement( address newOwner_ ) public virtual override onlyManager() notPushTimeLocked {
         require( newOwner_ != address(0), "Ownable: new owner is the zero address");
         emit OwnershipPushed( _owner, newOwner_ );
         _newOwner = newOwner_;
+        _pushTimelock = 0;
     }
     
     function pullManagement() public virtual override {
@@ -52,6 +54,38 @@ contract Ownable is IOwnable {
         emit OwnershipPulled( _owner, _newOwner );
         _owner = _newOwner;
     }
+
+    // TIMELOCKS
+    uint256 private constant _TIMELOCK = 2 days;
+    uint256 public _pushTimelock = 0;
+    uint256 public _renounceTimelock = 0;
+
+    modifier notPushTimeLocked() {
+        require(_pushTimelock != 0 && _pushTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openPushTimeLock() external onlyManager() {
+        _pushTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelPushTimeLock() external onlyManager() {
+        _pushTimelock = 0;
+    }
+
+    modifier notRenounceTimeLocked() {
+        require(_renounceTimelock != 0 && _renounceTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openRenounceTimeLock() external onlyManager() {
+        _renounceTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelRenounceTimeLock() external onlyManager() {
+        _renounceTimelock = 0;
+    }
+    // END TIMELOCKS
 }
 
 interface IsgAKITA {
@@ -242,21 +276,23 @@ contract AkitaStaking is Ownable {
         @notice provide bonus to locked staking contract
         @param _amount uint
      */
-    function giveLockBonus( uint _amount ) external {
+    function giveLockBonus( uint _amount ) external giveLockBonusNotTimeLocked {
         require( msg.sender == locker );
         totalBonus = totalBonus - _amount;
 
         sgAKITA.safeTransfer( locker, _amount );
+        _giveLockBonusTimelock = 0;
     }
 
     /**
         @notice reclaim bonus from locked staking contract
         @param _amount uint
      */
-    function returnLockBonus( uint _amount ) external {
+    function returnLockBonus( uint _amount ) external returnLockBonusNotTimeLocked {
         require( msg.sender == locker );
         totalBonus = totalBonus - _amount;
         sgAKITA.safeTransferFrom( locker, address(this), _amount );
+        _returnLockBonusTimelock = 0;
     }
 
     enum CONTRACTS { DISTRIBUTOR, WARMUP, LOCKER }
@@ -265,7 +301,7 @@ contract AkitaStaking is Ownable {
         @notice sets the contract address for LP staking
         @param _contract address
      */
-    function setContract( CONTRACTS _contract, address _address ) external onlyManager() {
+    function setContract( CONTRACTS _contract, address _address ) external onlyManager() setContractNotTimeLocked {
         if( _contract == CONTRACTS.DISTRIBUTOR ) { // 0
             distributor = _address;
         } else if ( _contract == CONTRACTS.WARMUP ) { // 1
@@ -275,13 +311,75 @@ contract AkitaStaking is Ownable {
             require( locker == address(0), "Locker cannot be set more than once" );
             locker = _address;
         }
+        _setContractTimelock = 0;
     }
     
     /**
      * @notice set warmup period for new stakers
      * @param _warmupPeriod uint
      */
-    function setWarmup( uint _warmupPeriod ) external onlyManager() {
+    function setWarmup( uint _warmupPeriod ) external onlyManager() setWarmuptNotTimeLocked {
         warmupPeriod = _warmupPeriod;
+        _setWarmupTimelock = 0;
+    }
+
+    /* ======== TIMELOCK FUNCTIONS ======== */
+
+    uint256 private constant _TIMELOCK = 2 days;
+    uint256 public _setContractTimelock = 0;
+    uint256 public _setWarmupTimelock = 0;
+    uint256 public _giveLockBonusTimelock = 0;
+    uint256 public _returnLockBonusTimelock = 0;
+
+    modifier setContractNotTimeLocked() {
+        require(_setContractTimelock != 0 && _setContractTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openSetContractTimeLock() external onlyManager() {
+        _setContractTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelSetContractTimeLock() external onlyManager() {
+        _setContractTimelock = 0;
+    }
+
+    modifier setWarmuptNotTimeLocked() {
+        require(_setWarmupTimelock != 0 && _setWarmupTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openSetWarmupTimeLock() external onlyManager() {
+        _setWarmupTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelSetWarmupTimeLock() external onlyManager() {
+        _setWarmupTimelock = 0;
+    }
+
+    modifier giveLockBonusNotTimeLocked() {
+        require(_giveLockBonusTimelock != 0 && _giveLockBonusTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openGiveLockBonusTimeLock() external onlyManager() {
+        _giveLockBonusTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelGiveLockBonusTimeLock() external onlyManager() {
+        _giveLockBonusTimelock = 0;
+    }
+
+    modifier returnLockBonusNotTimeLocked() {
+        require(_returnLockBonusTimelock != 0 && _returnLockBonusTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openReturnLockBonusTimeLock() external onlyManager() {
+        _returnLockBonusTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelReturnLockBonusTimeLock() external onlyManager() {
+        _returnLockBonusTimelock = 0;
     }
 }

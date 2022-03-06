@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -18,6 +17,81 @@ interface IAKITAERC20 {
 interface IBondCalculator {
   function valuation( address pair_, uint amount_ ) external view returns ( uint _value );
 }
+
+interface IOwnable {
+  function owner() external view returns (address);
+
+  function renounceOwnership() external;
+  
+  function transferOwnership( address newOwner_ ) external;
+}
+
+contract Ownable is IOwnable {
+    
+  address internal _owner;
+
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+  // TIMELOCKS
+  uint256 private constant _TIMELOCK = 2 days;
+  uint256 public _transferTimelock = 0;
+  uint256 public _renounceTimelock = 0;
+
+  modifier notTransferTimeLocked() {
+    require(_transferTimelock != 0 && _transferTimelock <= block.timestamp, "Timelocked");
+    _;
+  }
+
+  function openTransferTimeLock() external onlyOwner() {
+    _transferTimelock = block.timestamp + _TIMELOCK;
+  }
+
+  function cancelTransferTimeLock() external onlyOwner() {
+    _transferTimelock = 0;
+  }
+
+  modifier notRenounceTimeLocked() {
+    require(_renounceTimelock != 0 && _renounceTimelock <= block.timestamp, "Timelocked");
+    _;
+  }
+
+  function openRenounceTimeLock() external onlyOwner() {
+    _renounceTimelock = block.timestamp + _TIMELOCK;
+  }
+
+  function cancelRenounceTimeLock() external onlyOwner() {
+    _renounceTimelock = 0;
+  }
+  // END TIMELOCKS
+
+  constructor () {
+    _owner = msg.sender;
+    emit OwnershipTransferred( address(0), _owner );
+  }
+
+  function owner() public view override returns (address) {
+    return _owner;
+  }
+
+  modifier onlyOwner() {
+    require( _owner == msg.sender, "Ownable: caller is not the owner" );
+    _;
+  }
+
+  function renounceOwnership() public virtual override onlyOwner() notRenounceTimeLocked() {
+    emit OwnershipTransferred( _owner, address(0) );
+    _owner = address(0);
+    _renounceTimelock = 0;
+  }
+
+  function transferOwnership( address newOwner_ ) public virtual override onlyOwner() notTransferTimeLocked() {
+    require( newOwner_ != address(0), "Ownable: new owner is the zero address");
+    emit OwnershipTransferred( _owner, newOwner_ );
+    _owner = newOwner_;
+    _transferTimelock = 0;
+  }
+}
+
 
 contract AkitaTreasury is Ownable {
 
@@ -123,7 +197,7 @@ contract AkitaTreasury is Ownable {
 
         uint value = valueOf(_token, _amount);
         send_ =  value - _profit;
-         IERC20Mintable( address(AKITA) ).mint( msg.sender, send_ );
+        IERC20Mintable( address(AKITA) ).mint( msg.sender, send_ );
 
         totalReserves =  totalReserves + value;
         emit ReservesUpdated( totalReserves );
@@ -247,7 +321,7 @@ contract AkitaTreasury is Ownable {
         @notice takes inventory of all tracked assets
         @notice always consolidate to recognized reserves before audit
      */
-    function auditReserves() external onlyOwner {
+    function auditReserves() external onlyOwner auditReservestNotTimeLocked {
         uint reserves;
         for( uint i = 0; i < reserveTokens.length; i++ ) {
             reserves += valueOf( reserveTokens[ i ], IERC20( reserveTokens[ i ] ).balanceOf( address(this) ) );
@@ -258,6 +332,7 @@ contract AkitaTreasury is Ownable {
         totalReserves = reserves;
         emit ReservesUpdated( reserves );
         emit ReservesAudited( reserves );
+        _auditReservesTimelock = 0;
     }
     /**
         @notice returns AKITA valuation of asset
@@ -278,7 +353,7 @@ contract AkitaTreasury is Ownable {
         @param _address address
         @return bool
      */
-   function queue( MANAGING _managing, address _address ) external onlyOwner returns ( bool ) {
+   function queue( MANAGING _managing, address _address ) external onlyOwner queueNotTimeLocked returns ( bool ) {
         require( _address != address(0) );
         if ( _managing == MANAGING.RESERVEDEPOSITOR ) { // 0
             reserveDepositorQueue[ _address ] = block.number + blocksNeededForQueue;
@@ -303,6 +378,7 @@ contract AkitaTreasury is Ownable {
         } else return false;
 
         emit ChangeQueued( _managing, _address );
+        _queueTimelock = 0;
         return true;
     }
 
@@ -313,7 +389,7 @@ contract AkitaTreasury is Ownable {
         @param _calculator address
         @return bool
      */
-    function toggle( MANAGING _managing, address _address, address _calculator ) external onlyOwner returns ( bool ) {
+    function toggle( MANAGING _managing, address _address, address _calculator ) external onlyOwner toggleNotTimeLocked returns ( bool ) {
         require( _address != address(0) );
         bool result;
         if ( _managing == MANAGING.RESERVEDEPOSITOR ) { // 0
@@ -415,6 +491,7 @@ contract AkitaTreasury is Ownable {
         } else return false;
 
         emit ChangeActivated( _managing, _address, result );
+        _toggleTimelock = 0;
         return true;
     }
 
@@ -450,5 +527,52 @@ contract AkitaTreasury is Ownable {
             }
         }
         return false;
+    }
+
+    /* ======== TIMELOCK FUNCTIONS ======== */
+
+    uint256 private constant _TIMELOCK = 2 days;
+    uint256 public _auditReservesTimelock = 0;
+    uint256 public _queueTimelock = 0;
+    uint256 public _toggleTimelock = 0;
+
+
+    modifier auditReservestNotTimeLocked() {
+        require(_auditReservesTimelock != 0 && _auditReservesTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openAuditReservesTimeLock() external onlyOwner() {
+        _auditReservesTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelAuditReservesTimeLock() external onlyOwner() {
+        _auditReservesTimelock = 0;
+    }
+
+    modifier queueNotTimeLocked() {
+        require(_queueTimelock != 0 && _queueTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openQueueTimeLock() external onlyOwner() {
+        _queueTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelQueueTimeLock() external onlyOwner() {
+        _queueTimelock = 0;
+    }
+
+    modifier toggleNotTimeLocked() {
+        require(_toggleTimelock != 0 && _toggleTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openToggleTimeLock() external onlyOwner() {
+        _toggleTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelToggleTimeLock() external onlyOwner() {
+        _toggleTimelock = 0;
     }
 }

@@ -19,6 +19,38 @@ contract Ownable is IOwnable {
     event OwnershipPushed(address indexed previousOwner, address indexed newOwner);
     event OwnershipPulled(address indexed previousOwner, address indexed newOwner);
 
+    // TIMELOCKS
+    uint256 private constant _TIMELOCK = 2 days;
+    uint256 public _pushTimelock = 0;
+    uint256 public _renounceTimelock = 0;
+
+    modifier notPushTimeLocked() {
+        require(_pushTimelock != 0 && _pushTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openPushTimeLock() external onlyPolicy() {
+        _pushTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelPushTimeLock() external onlyPolicy() {
+        _pushTimelock = 0;
+    }
+
+    modifier notRenounceTimeLocked() {
+        require(_renounceTimelock != 0 && _renounceTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openRenounceTimeLock() external onlyPolicy() {
+        _renounceTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelRenounceTimeLock() external onlyPolicy() {
+        _renounceTimelock = 0;
+    }
+    // END TIMELOCKS
+
     constructor () {
         _owner = msg.sender;
         emit OwnershipPushed( address(0), _owner );
@@ -36,12 +68,14 @@ contract Ownable is IOwnable {
     function renounceManagement() public virtual override onlyPolicy() {
         emit OwnershipPushed( _owner, address(0) );
         _owner = address(0);
+        _renounceTimelock = 0;
     }
 
     function pushManagement( address newOwner_ ) public virtual override onlyPolicy() {
         require( newOwner_ != address(0), "Ownable: new owner is the zero address");
         emit OwnershipPushed( _owner, newOwner_ );
         _newOwner = newOwner_;
+        _pushTimelock = 0;
     }
     
     function pullManagement() public virtual override {
@@ -58,6 +92,10 @@ interface IBond {
 
 contract RedeemHelper is Ownable {
 
+    uint256 private constant _TIMELOCK = 2 days;
+    uint256 public _addBondTimelock = 0;
+    uint256 public _removeBondTimelock = 0;
+
     address[] public bonds;
 
     function redeemAll( address _recipient, bool _stake ) external {
@@ -70,12 +108,40 @@ contract RedeemHelper is Ownable {
         }
     }
 
-    function addBondContract( address _bond ) external onlyPolicy() {
+    function addBondContract( address _bond ) external onlyPolicy() addBondNotTimeLocked {
         require( _bond != address(0) );
         bonds.push( _bond );
+        _addBondTimelock = 0;
     }
 
-    function removeBondContract( uint _index ) external onlyPolicy() {
+    function removeBondContract( uint _index ) external onlyPolicy() removeBondNotTimeLocked {
         bonds[ _index ] = address(0);
+        _removeBondTimelock = 0;
+    }
+
+    modifier addBondNotTimeLocked() {
+        require(_addBondTimelock != 0 && _addBondTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openAddBondTimeLock() external onlyPolicy() {
+        _addBondTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelAddBondTimeLock() external onlyPolicy() {
+        _addBondTimelock = 0;
+    }
+
+    modifier removeBondNotTimeLocked() {
+        require(_removeBondTimelock != 0 && _removeBondTimelock <= block.timestamp, "Timelocked");
+        _;
+    }
+
+    function openRemoveBondTimeLock() external onlyPolicy() {
+        _removeBondTimelock = block.timestamp + _TIMELOCK;
+    }
+
+    function cancelRemoveBondTimeLock() external onlyPolicy() {
+        _removeBondTimelock = 0;
     }
 }

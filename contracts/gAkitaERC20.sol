@@ -741,33 +741,33 @@ contract Ownable is IOwnable {
 
   // TIMELOCKS
   uint256 private constant _TIMELOCK = 2 days;
-  uint256 public transferTimelock = 0;
-  uint256 public renounceTimelock = 0;
+  uint256 public _transferTimelock = 0;
+  uint256 public _renounceTimelock = 0;
 
   modifier notTransferTimeLocked() {
-    require(transferTimelock != 0 && transferTimelock <= block.timestamp, "Timelocked");
+    require(_transferTimelock != 0 && _transferTimelock <= block.timestamp, "Timelocked");
     _;
   }
 
   function openTransferTimeLock() external onlyOwner() {
-    transferTimelock = block.timestamp + _TIMELOCK;
+    _transferTimelock = block.timestamp + _TIMELOCK;
   }
 
   function cancelTransferTimeLock() external onlyOwner() {
-    transferTimelock = 0;
+    _transferTimelock = 0;
   }
 
   modifier notRenounceTimeLocked() {
-    require(renounceTimelock != 0 && renounceTimelock <= block.timestamp, "Timelocked");
+    require(_renounceTimelock != 0 && _renounceTimelock <= block.timestamp, "Timelocked");
     _;
   }
 
   function openRenounceTimeLock() external onlyOwner() {
-    renounceTimelock = block.timestamp + _TIMELOCK;
+    _renounceTimelock = block.timestamp + _TIMELOCK;
   }
 
   function cancelRenounceTimeLock() external onlyOwner() {
-    renounceTimelock = 0;
+    _renounceTimelock = 0;
   }
   // END TIMELOCKS
 
@@ -788,14 +788,14 @@ contract Ownable is IOwnable {
   function renounceOwnership() public virtual override onlyOwner() notRenounceTimeLocked() {
     emit OwnershipTransferred( _owner, address(0) );
     _owner = address(0);
-    renounceTimelock = 0;
+    _renounceTimelock = 0;
   }
 
   function transferOwnership( address newOwner_ ) public virtual override onlyOwner() notTransferTimeLocked() {
     require( newOwner_ != address(0), "Ownable: new owner is the zero address");
     emit OwnershipTransferred( _owner, newOwner_ );
     _owner = newOwner_;
-    transferTimelock = 0;
+    _transferTimelock = 0;
   }
 }
 
@@ -804,24 +804,24 @@ contract VaultOwned is Ownable {
   address internal _vault;
 
   uint256 private constant _TIMELOCK = 2 days;
-  uint256 public timelock = 0;
+  uint256 public _timelock = 0;
 
   modifier notTimeLocked() {
-    require(timelock != 0 && timelock <= block.timestamp, "Timelocked");
+    require(_timelock != 0 && _timelock <= block.timestamp, "Timelocked");
     _;
   }
 
   function openTimeLock() external onlyOwner() {
-    timelock = block.timestamp + _TIMELOCK;
+    _timelock = block.timestamp + _TIMELOCK;
   }
 
   function cancelTimeLock() external onlyOwner() {
-    timelock = 0;
+    _timelock = 0;
   }
 
   function setVault( address vault_ ) external onlyOwner() notTimeLocked() returns ( bool ) {
     _vault = vault_;
-    timelock = 0;
+    _timelock = 0;
 
     return true;
   }
@@ -839,27 +839,27 @@ contract VaultOwned is Ownable {
 contract gAkitaERC20Token is ERC20Permit, VaultOwned {
 
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public mintTimelock = 0;
+    uint256 public _mintTimelock = 0;
 
     constructor() ERC20("gAkita", "gAKITA", 9) {
     }
 
     modifier notMintTimeLocked() {
-      require(mintTimelock != 0 && mintTimelock <= block.timestamp, "Timelocked");
+      require(_mintTimelock != 0 && _mintTimelock <= block.timestamp, "Timelocked");
       _;
     }
 
     function openMintTimeLock() external onlyOwner() {
-      mintTimelock = block.timestamp + _TIMELOCK;
+      _mintTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelMintTimeLock() external onlyOwner() {
-      mintTimelock = 0;
+      _mintTimelock = 0;
     }
 
     function mint(address account_, uint256 amount_) external onlyVault() notMintTimeLocked() {
         _mint(account_, amount_);
-        mintTimelock = 0;
+        _mintTimelock = 0;
     }
 
     function burn(uint256 amount) public virtual {

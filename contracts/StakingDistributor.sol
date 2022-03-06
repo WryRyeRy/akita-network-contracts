@@ -2,7 +2,6 @@
 
 pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Fixidity.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -43,13 +42,13 @@ contract Policy is IPolicy {
     function renouncePolicy() public virtual override onlyPolicy() notRenounceTimeLocked {
         emit OwnershipTransferred( _policy, address(0) );
         _policy = address(0);
-        _renounceTimelock = 0;
+        renounceTimelock = 0;
     }
 
     function pushPolicy( address newPolicy_ ) public virtual override onlyPolicy() notPushTimeLocked {
         require( newPolicy_ != address(0), "Ownable: new owner is the zero address");
         _newPolicy = newPolicy_;
-        _pushTimelock = 0;
+        pushTimelock = 0;
     }
 
     function pullPolicy() public virtual override {
@@ -60,33 +59,33 @@ contract Policy is IPolicy {
 
     // TIMELOCKS
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public _pushTimelock = 0;
-    uint256 public _renounceTimelock = 0;
+    uint256 public pushTimelock = 0;
+    uint256 public renounceTimelock = 0;
 
     modifier notPushTimeLocked() {
-        require(_pushTimelock != 0 && _pushTimelock <= block.timestamp, "Timelocked");
+        require(pushTimelock != 0 && pushTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openPushTimeLock() external onlyPolicy() {
-        _pushTimelock = block.timestamp + _TIMELOCK;
+        pushTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelPushTimeLock() external onlyPolicy() {
-        _pushTimelock = 0;
+        pushTimelock = 0;
     }
 
     modifier notRenounceTimeLocked() {
-        require(_renounceTimelock != 0 && _renounceTimelock <= block.timestamp, "Timelocked");
+        require(renounceTimelock != 0 && renounceTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openRenounceTimeLock() external onlyPolicy() {
-        _renounceTimelock = block.timestamp + _TIMELOCK;
+        renounceTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelRenounceTimeLock() external onlyPolicy() {
-        _renounceTimelock = 0;
+        renounceTimelock = 0;
     }
     // END TIMELOCKS
 }
@@ -229,7 +228,7 @@ contract Distributor is Policy {
             recipient: _recipient,
             rate: _rewardRate
         }));
-        _addRecipientTimelock = 0;
+        addRecipientTimelock = 0;
     }
 
     /**
@@ -241,7 +240,7 @@ contract Distributor is Policy {
         require( _recipient == info[ _index ].recipient );
         info[ _index ].recipient = address(0);
         info[ _index ].rate = 0;
-        _removeRecipientTimelock = 0;
+        removeRecipientTimelock = 0;
     }
 
     /**
@@ -257,52 +256,52 @@ contract Distributor is Policy {
             rate: _rate,
             target: _target
         });
-        _setAdjustmentTimelock = 0;
+        setAdjustmentTimelock = 0;
     }
 
      /* ======== TIMELOCK FUNCTIONS ======== */
 
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public _addRecipientTimelock = 0;
-    uint256 public _removeRecipientTimelock = 0;
-    uint256 public _setAdjustmentTimelock = 0;
+    uint256 public addRecipientTimelock = 0;
+    uint256 public removeRecipientTimelock = 0;
+    uint256 public setAdjustmentTimelock = 0;
 
     modifier addRecipientNotTimeLocked() {
-        require(_addRecipientTimelock != 0 && _addRecipientTimelock <= block.timestamp, "Timelocked");
+        require(addRecipientTimelock != 0 && addRecipientTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openAddRecipientTimeLock() external onlyPolicy() {
-        _addRecipientTimelock = block.timestamp + _TIMELOCK;
+        addRecipientTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelAddRecipientTimeLock() external onlyPolicy() {
-        _addRecipientTimelock = 0;
+        addRecipientTimelock = 0;
     }
 
     modifier removeRecipientNotTimeLocked() {
-        require(_removeRecipientTimelock != 0 && _removeRecipientTimelock <= block.timestamp, "Timelocked");
+        require(removeRecipientTimelock != 0 && removeRecipientTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openRemoveRecipientTimeLock() external onlyPolicy() {
-        _removeRecipientTimelock = block.timestamp + _TIMELOCK;
+        removeRecipientTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelRemoveRecipientTimeLock() external onlyPolicy() {
-        _removeRecipientTimelock = 0;
+        removeRecipientTimelock = 0;
     }
 
     modifier setAdjustmentNotTimeLocked() {
-        require(_setAdjustmentTimelock != 0 && _setAdjustmentTimelock <= block.timestamp, "Timelocked");
+        require(setAdjustmentTimelock != 0 && setAdjustmentTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openSetAdjustmentTimeLock() external onlyPolicy() {
-        _setAdjustmentTimelock = block.timestamp + _TIMELOCK;
+        setAdjustmentTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelSetAdjustmentTimeLock() external onlyPolicy() {
-        _setAdjustmentTimelock = 0;
+        setAdjustmentTimelock = 0;
     }
 }

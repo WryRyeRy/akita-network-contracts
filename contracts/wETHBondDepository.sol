@@ -40,14 +40,14 @@ contract Ownable is IOwnable {
     function renounceManagement() public virtual override onlyPolicy() notRenounceTimeLocked {
         emit OwnershipPushed( _owner, address(0) );
         _owner = address(0);
-        _renounceTimelock = 0;
+        renounceTimelock = 0;
     }
 
     function pushManagement( address newOwner_ ) public virtual override onlyPolicy() notPushTimeLocked {
         require( newOwner_ != address(0), "Ownable: new owner is the zero address");
         emit OwnershipPushed( _owner, newOwner_ );
         _newOwner = newOwner_;
-        _pushTimelock = 0;
+        pushTimelock = 0;
     }
     
     function pullManagement() public virtual override {
@@ -58,33 +58,33 @@ contract Ownable is IOwnable {
 
     // TIMELOCKS
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public _pushTimelock = 0;
-    uint256 public _renounceTimelock = 0;
+    uint256 public pushTimelock = 0;
+    uint256 public renounceTimelock = 0;
 
     modifier notPushTimeLocked() {
-        require(_pushTimelock != 0 && _pushTimelock <= block.timestamp, "Timelocked");
+        require(pushTimelock != 0 && pushTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openPushTimeLock() external onlyPolicy() {
-        _pushTimelock = block.timestamp + _TIMELOCK;
+        pushTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelPushTimeLock() external onlyPolicy() {
-        _pushTimelock = 0;
+        pushTimelock = 0;
     }
 
     modifier notRenounceTimeLocked() {
-        require(_renounceTimelock != 0 && _renounceTimelock <= block.timestamp, "Timelocked");
+        require(renounceTimelock != 0 && renounceTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openRenounceTimeLock() external onlyPolicy() {
-        _renounceTimelock = block.timestamp + _TIMELOCK;
+        renounceTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelRenounceTimeLock() external onlyPolicy() {
-        _renounceTimelock = 0;
+        renounceTimelock = 0;
     }
     // END TIMELOCKS
 }
@@ -252,7 +252,7 @@ contract wAVAXAKITABondDepository is Ownable {
         });
         totalDebt = _initialDebt;
         lastDecay = block.number;
-        _initializeTimelock = 0;
+        initializeTimelock = 0;
     }
 
 
@@ -273,7 +273,7 @@ contract wAVAXAKITABondDepository is Ownable {
         } else if ( _parameter == PARAMETER.DEBT ) { // 3
             terms.maxDebt = _input;
         }
-        _setBondTermTimelock = 0;
+        setBondTermTimelock = 0;
     }
 
     /**
@@ -301,7 +301,7 @@ contract wAVAXAKITABondDepository is Ownable {
             buffer: _buffer,
             lastBlock: block.number
         });
-        _setAdjustmentTimelock = 0;
+        setAdjustmentTimelock = 0;
     }
 
     /**
@@ -318,7 +318,7 @@ contract wAVAXAKITABondDepository is Ownable {
             useHelper = false;
             staking = _staking;
         }
-        _setStakingTimelock = 0;
+        setStakingTimelock = 0;
     }
 
 
@@ -645,60 +645,60 @@ contract wAVAXAKITABondDepository is Ownable {
     /* ======== TIMELOCK FUNCTIONS ======== */
 
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public _initializeTimelock = 0;
-    uint256 public _setBondTermTimelock = 0;
-    uint256 public _setAdjustmentTimelock = 0;
-    uint256 public _setStakingTimelock = 0;
+    uint256 public initializeTimelock = 0;
+    uint256 public setBondTermTimelock = 0;
+    uint256 public setAdjustmentTimelock = 0;
+    uint256 public setStakingTimelock = 0;
 
     modifier initializeNotTimeLocked() {
-        require(_initializeTimelock != 0 && _initializeTimelock <= block.timestamp, "Timelocked");
+        require(initializeTimelock != 0 && initializeTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openInitializeTimeLock() external onlyPolicy() {
-        _initializeTimelock = block.timestamp + _TIMELOCK;
+        initializeTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelInitializeTimeLock() external onlyPolicy() {
-        _initializeTimelock = 0;
+        initializeTimelock = 0;
     }
 
     modifier setBondTermNotTimeLocked() {
-        require(_setBondTermTimelock != 0 && _setBondTermTimelock <= block.timestamp, "Timelocked");
+        require(setBondTermTimelock != 0 && setBondTermTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openSetBondTermTimeLock() external onlyPolicy() {
-        _setBondTermTimelock = block.timestamp + _TIMELOCK;
+        setBondTermTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelSetBondTermTimeLock() external onlyPolicy() {
-        _setBondTermTimelock = 0;
+        setBondTermTimelock = 0;
     }
 
     modifier setAdjustmentNotTimeLocked() {
-        require(_setAdjustmentTimelock != 0 && _setAdjustmentTimelock <= block.timestamp, "Timelocked");
+        require(setAdjustmentTimelock != 0 && setAdjustmentTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openSetAdjustmentTimeLock() external onlyPolicy() {
-        _setAdjustmentTimelock = block.timestamp + _TIMELOCK;
+        setAdjustmentTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelSetAdjustmentTimeLock() external onlyPolicy() {
-        _setAdjustmentTimelock = 0;
+        setAdjustmentTimelock = 0;
     }
 
     modifier setStakingNotTimeLocked() {
-        require(_setStakingTimelock != 0 && _setStakingTimelock <= block.timestamp, "Timelocked");
+        require(setStakingTimelock != 0 && setStakingTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openSetStakingTimeLock() external onlyPolicy() {
-        _setStakingTimelock = block.timestamp + _TIMELOCK;
+        setStakingTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelSetStakingTimeLock() external onlyPolicy() {
-        _setStakingTimelock = 0;
+        setStakingTimelock = 0;
     }
 }

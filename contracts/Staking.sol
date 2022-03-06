@@ -39,14 +39,14 @@ contract Ownable is IOwnable {
     function renounceManagement() public virtual override onlyManager() notRenounceTimeLocked {
         emit OwnershipPushed( _owner, address(0) );
         _owner = address(0);
-        _renounceTimelock = 0;
+        renounceTimelock = 0;
     }
 
     function pushManagement( address newOwner_ ) public virtual override onlyManager() notPushTimeLocked {
         require( newOwner_ != address(0), "Ownable: new owner is the zero address");
         emit OwnershipPushed( _owner, newOwner_ );
         _newOwner = newOwner_;
-        _pushTimelock = 0;
+        pushTimelock = 0;
     }
     
     function pullManagement() public virtual override {
@@ -57,33 +57,33 @@ contract Ownable is IOwnable {
 
     // TIMELOCKS
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public _pushTimelock = 0;
-    uint256 public _renounceTimelock = 0;
+    uint256 public pushTimelock = 0;
+    uint256 public renounceTimelock = 0;
 
     modifier notPushTimeLocked() {
-        require(_pushTimelock != 0 && _pushTimelock <= block.timestamp, "Timelocked");
+        require(pushTimelock != 0 && pushTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openPushTimeLock() external onlyManager() {
-        _pushTimelock = block.timestamp + _TIMELOCK;
+        pushTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelPushTimeLock() external onlyManager() {
-        _pushTimelock = 0;
+        pushTimelock = 0;
     }
 
     modifier notRenounceTimeLocked() {
-        require(_renounceTimelock != 0 && _renounceTimelock <= block.timestamp, "Timelocked");
+        require(renounceTimelock != 0 && renounceTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openRenounceTimeLock() external onlyManager() {
-        _renounceTimelock = block.timestamp + _TIMELOCK;
+        renounceTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelRenounceTimeLock() external onlyManager() {
-        _renounceTimelock = 0;
+        renounceTimelock = 0;
     }
     // END TIMELOCKS
 }
@@ -281,7 +281,7 @@ contract AkitaStaking is Ownable {
         totalBonus = totalBonus - _amount;
 
         sgAKITA.safeTransfer( locker, _amount );
-        _giveLockBonusTimelock = 0;
+        giveLockBonusTimelock = 0;
     }
 
     /**
@@ -292,7 +292,7 @@ contract AkitaStaking is Ownable {
         require( msg.sender == locker );
         totalBonus = totalBonus - _amount;
         sgAKITA.safeTransferFrom( locker, address(this), _amount );
-        _returnLockBonusTimelock = 0;
+        returnLockBonusTimelock = 0;
     }
 
     enum CONTRACTS { DISTRIBUTOR, WARMUP, LOCKER }
@@ -311,7 +311,7 @@ contract AkitaStaking is Ownable {
             require( locker == address(0), "Locker cannot be set more than once" );
             locker = _address;
         }
-        _setContractTimelock = 0;
+        setContractTimelock = 0;
     }
     
     /**
@@ -320,66 +320,66 @@ contract AkitaStaking is Ownable {
      */
     function setWarmup( uint _warmupPeriod ) external onlyManager() setWarmuptNotTimeLocked {
         warmupPeriod = _warmupPeriod;
-        _setWarmupTimelock = 0;
+        setWarmupTimelock = 0;
     }
 
     /* ======== TIMELOCK FUNCTIONS ======== */
 
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public _setContractTimelock = 0;
-    uint256 public _setWarmupTimelock = 0;
-    uint256 public _giveLockBonusTimelock = 0;
-    uint256 public _returnLockBonusTimelock = 0;
+    uint256 public setContractTimelock = 0;
+    uint256 public setWarmupTimelock = 0;
+    uint256 public giveLockBonusTimelock = 0;
+    uint256 public returnLockBonusTimelock = 0;
 
     modifier setContractNotTimeLocked() {
-        require(_setContractTimelock != 0 && _setContractTimelock <= block.timestamp, "Timelocked");
+        require(setContractTimelock != 0 && setContractTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openSetContractTimeLock() external onlyManager() {
-        _setContractTimelock = block.timestamp + _TIMELOCK;
+        setContractTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelSetContractTimeLock() external onlyManager() {
-        _setContractTimelock = 0;
+        setContractTimelock = 0;
     }
 
     modifier setWarmuptNotTimeLocked() {
-        require(_setWarmupTimelock != 0 && _setWarmupTimelock <= block.timestamp, "Timelocked");
+        require(setWarmupTimelock != 0 && setWarmupTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openSetWarmupTimeLock() external onlyManager() {
-        _setWarmupTimelock = block.timestamp + _TIMELOCK;
+        setWarmupTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelSetWarmupTimeLock() external onlyManager() {
-        _setWarmupTimelock = 0;
+        setWarmupTimelock = 0;
     }
 
     modifier giveLockBonusNotTimeLocked() {
-        require(_giveLockBonusTimelock != 0 && _giveLockBonusTimelock <= block.timestamp, "Timelocked");
+        require(giveLockBonusTimelock != 0 && giveLockBonusTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openGiveLockBonusTimeLock() external onlyManager() {
-        _giveLockBonusTimelock = block.timestamp + _TIMELOCK;
+        giveLockBonusTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelGiveLockBonusTimeLock() external onlyManager() {
-        _giveLockBonusTimelock = 0;
+        giveLockBonusTimelock = 0;
     }
 
     modifier returnLockBonusNotTimeLocked() {
-        require(_returnLockBonusTimelock != 0 && _returnLockBonusTimelock <= block.timestamp, "Timelocked");
+        require(returnLockBonusTimelock != 0 && returnLockBonusTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openReturnLockBonusTimeLock() external onlyManager() {
-        _returnLockBonusTimelock = block.timestamp + _TIMELOCK;
+        returnLockBonusTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelReturnLockBonusTimeLock() external onlyManager() {
-        _returnLockBonusTimelock = 0;
+        returnLockBonusTimelock = 0;
     }
 }

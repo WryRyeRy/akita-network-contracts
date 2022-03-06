@@ -21,33 +21,33 @@ contract Ownable is IOwnable {
 
     // TIMELOCKS
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public _pushTimelock = 0;
-    uint256 public _renounceTimelock = 0;
+    uint256 public pushTimelock = 0;
+    uint256 public renounceTimelock = 0;
 
     modifier notPushTimeLocked() {
-        require(_pushTimelock != 0 && _pushTimelock <= block.timestamp, "Timelocked");
+        require(pushTimelock != 0 && pushTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openPushTimeLock() external onlyPolicy() {
-        _pushTimelock = block.timestamp + _TIMELOCK;
+        pushTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelPushTimeLock() external onlyPolicy() {
-        _pushTimelock = 0;
+        pushTimelock = 0;
     }
 
     modifier notRenounceTimeLocked() {
-        require(_renounceTimelock != 0 && _renounceTimelock <= block.timestamp, "Timelocked");
+        require(renounceTimelock != 0 && renounceTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openRenounceTimeLock() external onlyPolicy() {
-        _renounceTimelock = block.timestamp + _TIMELOCK;
+        renounceTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelRenounceTimeLock() external onlyPolicy() {
-        _renounceTimelock = 0;
+        renounceTimelock = 0;
     }
     // END TIMELOCKS
 
@@ -68,14 +68,14 @@ contract Ownable is IOwnable {
     function renounceManagement() public virtual override onlyPolicy() notRenounceTimeLocked {
         emit OwnershipPushed( _owner, address(0) );
         _owner = address(0);
-        _renounceTimelock = 0;
+        renounceTimelock = 0;
     }
 
     function pushManagement( address newOwner_ ) public virtual override onlyPolicy() notPushTimeLocked {
         require( newOwner_ != address(0), "Ownable: new owner is the zero address");
         emit OwnershipPushed( _owner, newOwner_ );
         _newOwner = newOwner_;
-        _pushTimelock = 0;
+        pushTimelock = 0;
     }
     
     function pullManagement() public virtual override {
@@ -93,8 +93,8 @@ interface IBond {
 contract RedeemHelper is Ownable {
 
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public _addBondTimelock = 0;
-    uint256 public _removeBondTimelock = 0;
+    uint256 public addBondTimelock = 0;
+    uint256 public removeBondTimelock = 0;
 
     address[] public bonds;
 
@@ -111,37 +111,37 @@ contract RedeemHelper is Ownable {
     function addBondContract( address _bond ) external onlyPolicy() addBondNotTimeLocked {
         require( _bond != address(0) );
         bonds.push( _bond );
-        _addBondTimelock = 0;
+        addBondTimelock = 0;
     }
 
     function removeBondContract( uint _index ) external onlyPolicy() removeBondNotTimeLocked {
         bonds[ _index ] = address(0);
-        _removeBondTimelock = 0;
+        removeBondTimelock = 0;
     }
 
     modifier addBondNotTimeLocked() {
-        require(_addBondTimelock != 0 && _addBondTimelock <= block.timestamp, "Timelocked");
+        require(addBondTimelock != 0 && addBondTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openAddBondTimeLock() external onlyPolicy() {
-        _addBondTimelock = block.timestamp + _TIMELOCK;
+        addBondTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelAddBondTimeLock() external onlyPolicy() {
-        _addBondTimelock = 0;
+        addBondTimelock = 0;
     }
 
     modifier removeBondNotTimeLocked() {
-        require(_removeBondTimelock != 0 && _removeBondTimelock <= block.timestamp, "Timelocked");
+        require(removeBondTimelock != 0 && removeBondTimelock <= block.timestamp, "Timelocked");
         _;
     }
 
     function openRemoveBondTimeLock() external onlyPolicy() {
-        _removeBondTimelock = block.timestamp + _TIMELOCK;
+        removeBondTimelock = block.timestamp + _TIMELOCK;
     }
 
     function cancelRemoveBondTimeLock() external onlyPolicy() {
-        _removeBondTimelock = 0;
+        removeBondTimelock = 0;
     }
 }

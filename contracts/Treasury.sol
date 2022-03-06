@@ -536,7 +536,6 @@ contract AkitaTreasury is Ownable {
     uint256 public _queueTimelock = 0;
     uint256 public _toggleTimelock = 0;
 
-
     modifier auditReservestNotTimeLocked() {
         require(_auditReservesTimelock != 0 && _auditReservesTimelock <= block.timestamp, "Timelocked");
         _;

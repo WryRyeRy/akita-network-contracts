@@ -537,7 +537,7 @@ contract AkitaTreasury is Ownable {
     uint256 public _toggleTimelock = 0;
 
     modifier auditReservestNotTimeLocked() {
-        require(_auditReservesTimelock != 0 && _auditReservesTimelock <= block.timestamp, "Timelocked");
+        require(_auditReservesTimelock != 0 && _auditReservesTimelock <= block.timestamp);
         _;
     }
 
@@ -550,7 +550,7 @@ contract AkitaTreasury is Ownable {
     }
 
     modifier queueNotTimeLocked() {
-        require(_queueTimelock != 0 && _queueTimelock <= block.timestamp, "Timelocked");
+        require(_queueTimelock != 0 && _queueTimelock <= block.timestamp);
         _;
     }
 
@@ -563,7 +563,7 @@ contract AkitaTreasury is Ownable {
     }
 
     modifier toggleNotTimeLocked() {
-        require(_toggleTimelock != 0 && _toggleTimelock <= block.timestamp, "Timelocked");
+        require(_toggleTimelock != 0 && _toggleTimelock <= block.timestamp);
         _;
     }
 

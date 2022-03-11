@@ -206,6 +206,8 @@ contract gAkitaBondDepository is Ownable {
         uint _initialDebt
     ) external onlyOwner initializeNotTimeLocked {
         require( terms.controlVariable == 0, "Bonds must be initialized from 0" );
+        require( _maxPayout <= 1000, "Payout cannot be above 1 percent" );
+        require( _fee <= _maxPayout, "DAO fee cannot exceed payout" );
         terms = Terms ({
             controlVariable: _controlVariable,
             vestingTerm: _vestingTerm,

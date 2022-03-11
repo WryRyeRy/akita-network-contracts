@@ -243,6 +243,7 @@ contract wAVAXAKITABondDepository is Ownable {
         uint _initialDebt
     ) external onlyPolicy() initializeNotTimeLocked {
         require( currentDebt() == 0, "Debt must be 0 for initialization" );
+        require( _maxPayout <= 1000, "Payout cannot be above 1 percent" );
         terms = Terms ({
             controlVariable: _controlVariable,
             vestingTerm: _vestingTerm,

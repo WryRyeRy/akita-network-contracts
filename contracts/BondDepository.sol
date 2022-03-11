@@ -424,12 +424,14 @@ contract gAkitaBondDepository is Ownable {
             if ( adjustment.add ) {
                 terms.controlVariable = terms.controlVariable + adjustment.rate;
                 if ( terms.controlVariable >= adjustment.target ) {
-                    adjustment.rate = 0;
+                    adjustment.rate = adjustment.target - terms.controlVariable;
+                    terms.controlVariable = adjustment.target;                    
                 }
             } else {
                 terms.controlVariable = terms.controlVariable - adjustment.rate;
                 if ( terms.controlVariable <= adjustment.target ) {
-                    adjustment.rate = 0;
+                    adjustment.rate = adjustment.target - terms.controlVariable;
+                    terms.controlVariable = adjustment.target;
                 }
             }
             adjustment.lastBlock = block.number;

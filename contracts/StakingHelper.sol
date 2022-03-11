@@ -23,10 +23,10 @@ contract StakingHelper {
         AKITA = _AKITA;
     }
 
-    function stake( uint _amount ) external {
-        AKITA.safeTransferFrom( msg.sender, address(this), _amount );
+    function stake( uint _amount, address _recipient ) external {
+        AKITA.safeTransferFrom( _recipient, address(this), _amount );
         AKITA.approve( staking, _amount );
-        IStaking( staking ).stake( _amount, msg.sender );
-        IStaking( staking ).claim( msg.sender );
+        IStaking( staking ).stake( _amount, _recipient );
+        IStaking( staking ).claim( _recipient );
     }
 }

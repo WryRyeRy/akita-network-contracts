@@ -186,13 +186,13 @@ contract AkitaTreasury is Ownable {
         @return send_ uint
      */
     function deposit( uint _amount, address _token, uint _profit ) external returns ( uint send_ ) {
-        require( isReserveToken[ _token ] || isLiquidityToken[ _token ], "NA" );
+        require( isReserveToken[ _token ] || isLiquidityToken[ _token ]);
         IERC20( _token ).safeTransferFrom( msg.sender, address(this), _amount );
 
         if ( isReserveToken[ _token ] ) {
-            require( isReserveDepositor[ msg.sender ], "NAPP" );
+            require( isReserveDepositor[ msg.sender ]);
         } else {
-            require( isLiquidityDepositor[ msg.sender ], "NAPP" );
+            require( isLiquidityDepositor[ msg.sender ]);
         }
 
         uint value = valueOf(_token, _amount);
@@ -211,8 +211,8 @@ contract AkitaTreasury is Ownable {
         @param _token address
      */
     function withdraw( uint _amount, address _token ) external {
-        require( isReserveToken[ _token ], "NA" ); 
-        require( isReserveSpender[ msg.sender ], "NAPP" );
+        require( isReserveToken[ _token ] ); 
+        require( isReserveSpender[ msg.sender ] );
 
         uint value = valueOf( _token, _amount );
         IAKITAERC20(address(AKITA)).burnFrom( msg.sender, value );
@@ -231,15 +231,15 @@ contract AkitaTreasury is Ownable {
         @param _token address
      */
     function incurDebt( uint _amount, address _token ) external {
-        require( isDebtor[ msg.sender ], "NA" );
-        require( isReserveToken[ _token ], "NA" );
+        require( isDebtor[ msg.sender ]);
+        require( isReserveToken[ _token ] );
 
         uint value = valueOf( _token, _amount );
 
         uint maximumDebt = sgAKITA.balanceOf( msg.sender );
         uint availableDebt = maximumDebt - debtorTotalBalance[ msg.sender ];
 
-        require( value <= availableDebt, "ExceedsDL" );
+        require( value <= availableDebt);
 
         debtorBalance[ msg.sender ][ _token ] += value;
         debtorTotalBalance[ msg.sender ] += value;
@@ -261,8 +261,8 @@ contract AkitaTreasury is Ownable {
         @param _token address
      */
     function repayDebtWithReserve( uint _amount, address _token ) external {
-        require( isDebtor[ msg.sender ], "NA" );
-        require( isReserveToken[ _token ], "NA" );
+        require( isDebtor[ msg.sender ]);
+        require( isReserveToken[ _token ] );
         IERC20( _token ).safeTransferFrom( msg.sender, address(this), _amount );
         
         debtorCollaterals[ msg.sender] -= _amount;
@@ -286,13 +286,13 @@ contract AkitaTreasury is Ownable {
      */
     function manage( address _token, uint _amount ) external {
         if( isLiquidityToken[ _token ] ) {
-            require( isLiquidityManager[ msg.sender ], "NAPP" );
+            require( isLiquidityManager[ msg.sender ] );
         } else {
-            require( isReserveManager[ msg.sender ], "NAPP" );
+            require( isReserveManager[ msg.sender ]);
         }
 
         uint value = valueOf(_token, _amount);
-        require( value <= excessReserves(), "IR" );
+        require( value <= excessReserves());
         totalReserves -= value;
         emit ReservesUpdated( totalReserves );
 
@@ -304,8 +304,8 @@ contract AkitaTreasury is Ownable {
         @notice send epoch reward to staking contract
      */
     function mintRewards( address _recipient, uint _amount ) external {
-        require( isRewardManager[ msg.sender ], "NAPP" );
-        require( _amount <= excessReserves(), "IR" );
+        require( isRewardManager[ msg.sender ] );
+        require( _amount <= excessReserves() );
         IERC20Mintable( address(AKITA) ).mint( _recipient, _amount );
         emit RewardsMinted( msg.sender, _recipient, _amount );
     } 
@@ -321,7 +321,7 @@ contract AkitaTreasury is Ownable {
         @notice takes inventory of all tracked assets
         @notice always consolidate to recognized reserves before audit
      */
-    function auditReserves() external onlyOwner auditReservestNotTimeLocked {
+    function auditReserves() external onlyOwner NotTimeLocked(LOCKS.AUDIT) {
         uint reserves;
         for( uint i = 0; i < reserveTokens.length; i++ ) {
             reserves += valueOf( reserveTokens[ i ], IERC20( reserveTokens[ i ] ).balanceOf( address(this) ) );
@@ -332,7 +332,6 @@ contract AkitaTreasury is Ownable {
         totalReserves = reserves;
         emit ReservesUpdated( reserves );
         emit ReservesAudited( reserves );
-        _auditReservesTimelock = 0;
     }
     /**
         @notice returns AKITA valuation of asset
@@ -353,7 +352,7 @@ contract AkitaTreasury is Ownable {
         @param _address address
         @return bool
      */
-   function queue( MANAGING _managing, address _address ) external onlyOwner queueNotTimeLocked returns ( bool ) {
+   function queue( MANAGING _managing, address _address ) external onlyOwner NotTimeLocked(LOCKS.QUEUE) returns ( bool ) {
         require( _address != address(0) );
         if ( _managing == MANAGING.RESERVEDEPOSITOR ) { // 0
             reserveDepositorQueue[ _address ] = block.number + blocksNeededForQueue;
@@ -378,7 +377,6 @@ contract AkitaTreasury is Ownable {
         } else return false;
 
         emit ChangeQueued( _managing, _address );
-        _queueTimelock = 0;
         return true;
     }
 
@@ -389,7 +387,7 @@ contract AkitaTreasury is Ownable {
         @param _calculator address
         @return bool
      */
-    function toggle( MANAGING _managing, address _address, address _calculator ) external onlyOwner toggleNotTimeLocked returns ( bool ) {
+    function toggle( MANAGING _managing, address _address, address _calculator ) external onlyOwner NotTimeLocked(LOCKS.TOGGLE) returns ( bool ) {
         require( _address != address(0) );
         bool result;
         if ( _managing == MANAGING.RESERVEDEPOSITOR ) { // 0
@@ -491,7 +489,6 @@ contract AkitaTreasury is Ownable {
         } else return false;
 
         emit ChangeActivated( _managing, _address, result );
-        _toggleTimelock = 0;
         return true;
     }
 
@@ -508,8 +505,8 @@ contract AkitaTreasury is Ownable {
         address _address 
     ) internal view returns ( bool ) {
         if ( !status_[ _address ] ) {
-            require( queue_[ _address ] != 0, "MU" );
-            require( queue_[ _address ] <= block.number, "QNE" );
+            require( queue_[ _address ] != 0 );
+            require( queue_[ _address ] <= block.number );
             return true;
         } return false;
     }
@@ -532,46 +529,20 @@ contract AkitaTreasury is Ownable {
     /* ======== TIMELOCK FUNCTIONS ======== */
 
     uint256 private constant _TIMELOCK = 2 days;
-    uint256 public _auditReservesTimelock = 0;
-    uint256 public _queueTimelock = 0;
-    uint256 public _toggleTimelock = 0;
+    enum LOCKS {AUDIT, QUEUE, TOGGLE}
+    mapping(LOCKS => uint256) _locks;
 
-    modifier auditReservestNotTimeLocked() {
-        require(_auditReservesTimelock != 0 && _auditReservesTimelock <= block.timestamp);
+    modifier NotTimeLocked(LOCKS lock_) {
+        require(_locks[lock_] != 0 &&_locks[lock_] <= block.timestamp);
         _;
+        _locks[lock_] = 0;
     }
 
-    function openAuditReservesTimeLock() external onlyOwner() {
-        _auditReservesTimelock = block.timestamp + _TIMELOCK;
+    function openLock(LOCKS lock_) external onlyOwner {
+        _locks[lock_] = block.timestamp + _TIMELOCK;
     }
 
-    function cancelAuditReservesTimeLock() external onlyOwner() {
-        _auditReservesTimelock = 0;
-    }
-
-    modifier queueNotTimeLocked() {
-        require(_queueTimelock != 0 && _queueTimelock <= block.timestamp);
-        _;
-    }
-
-    function openQueueTimeLock() external onlyOwner() {
-        _queueTimelock = block.timestamp + _TIMELOCK;
-    }
-
-    function cancelQueueTimeLock() external onlyOwner() {
-        _queueTimelock = 0;
-    }
-
-    modifier toggleNotTimeLocked() {
-        require(_toggleTimelock != 0 && _toggleTimelock <= block.timestamp);
-        _;
-    }
-
-    function openToggleTimeLock() external onlyOwner() {
-        _toggleTimelock = block.timestamp + _TIMELOCK;
-    }
-
-    function cancelToggleTimeLock() external onlyOwner() {
-        _toggleTimelock = 0;
+    function cancelLock(LOCKS lock_) external onlyOwner {
+        _locks[lock_] = 0;
     }
 }

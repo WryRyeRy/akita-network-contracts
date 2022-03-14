@@ -159,8 +159,6 @@ contract sgAkita is ERC20, Ownable {
         uint256 rebaseAmount;
         uint256 circulatingSupply_ = circulatingSupply();
 
-        require(circulatingSupply_ > 0, "cant rebase when circulatingSupply is 0");
-
         if ( profit_ == 0 ) {
             emit LogSupply( epoch_, block.timestamp, total_token_supply );
             emit LogRebase( epoch_, 0, index() );
@@ -193,7 +191,7 @@ contract sgAkita is ERC20, Ownable {
         @return bool
      */
     function _storeRebase( uint previousCirculating_, uint profit_, uint epoch_, uint rebaseAmount_ ) internal returns ( bool ) {
-        uint rebasePercent = Fixidity.fromFixed( Fixidity.divide( Fixidity.mul( Fixidity.newFixed(profit_) , Fixidity.newFixed(1e18) ) , Fixidity.newFixed(previousCirculating_)) );
+        uint rebasePercent = previousCirculating_ == 0 ? 0 : Fixidity.fromFixed( Fixidity.divide( Fixidity.mul( Fixidity.newFixed(profit_) , Fixidity.newFixed(1e18) ) , Fixidity.newFixed(previousCirculating_)) );
 
         rebases.push( Rebase ( {
             epoch: epoch_,

@@ -27,6 +27,5 @@ contract StakingHelper {
         AKITA.safeTransferFrom( _recipient, address(this), _amount );
         AKITA.approve( staking, _amount );
         IStaking( staking ).stake( _amount, _recipient );
-        IStaking( staking ).claim( _recipient );
     }
 }

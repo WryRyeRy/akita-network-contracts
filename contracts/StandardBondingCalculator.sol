@@ -59,9 +59,6 @@ interface IUniswapV2ERC20 {
 
 
 interface IUniswapV2Pair is IUniswapV2ERC20 {
-    function price0CumulativeLast() external view returns (uint);
-    function price1CumulativeLast() external view returns (uint);
-
     function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
     function token0() external view returns ( address );
     function token1() external view returns ( address );
@@ -87,8 +84,7 @@ contract AkitaBondingCalculator is IBondingCalculator {
         uint token1 = IERC20Metadata(IUniswapV2Pair( _pair ).token1()).decimals();
         uint decimals = (token1 + token0) - IERC20Metadata( _pair ).decimals();
 
-        uint reserve0 = IUniswapV2Pair( _pair ).price0CumulativeLast();
-        uint reserve1 = IUniswapV2Pair( _pair ).price1CumulativeLast();
+        (uint reserve0, uint reserve1, ) = IUniswapV2Pair( _pair ).getReserves();
         k_ = Fixidity.fromFixed( 
             Fixidity.divide( 
             Fixidity.mul( Fixidity.newFixed(reserve0) , Fixidity.newFixed(reserve1) ), 
